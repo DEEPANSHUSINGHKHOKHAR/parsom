@@ -1,0 +1,38 @@
+{
+  "name": "parsom-api",
+  "version": "1.0.0",
+  "description": "Parsom Brand API",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "dev:worker": "nodemon src/worker.js",
+    "start": "node src/server.js",
+    "start:worker": "node src/worker.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "@getbrevo/brevo": "^3.0.1",
+    "amqplib": "^0.10.9",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.3.2",
+    "express-validator": "^7.3.2",
+    "googleapis": "^171.4.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "multer": "^2.1.1",
+    "mysql2": "^3.22.2",
+    "nodemailer": "^8.0.5",
+    "pdfkit": "^0.18.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "resend": "^6.6.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

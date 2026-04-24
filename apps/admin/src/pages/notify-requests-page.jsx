@@ -1,0 +1,299 @@
+import { useEffect, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
+import {
+  fetchAdminNotifyRequests,
+  updateAdminNotifyStatus,
+} from '../services/admin-notify-service';
+
+const notifyStatusMessages = {
+  pending: 'Your notify request has been received and is currently pending.',
+  read: 'We have reviewed your notify request.',
+  stock_updated: 'Good news, the requested item has a stock update.',
+  contacted: 'We are contacting you about your notify request.',
+  completed: 'Your notify request has been completed.',
+};
+
+function getWhatsAppHref(item, form = {}) {
+  const phone = `${item.phone || ''}`.replace(/\D/g, '');
+
+  if (!phone) {
+    return '';
+  }
+
+  const status = form.status || item.status;
+  const adminMessage = (form.adminNotes ?? item.adminNotes ?? '').trim();
+  const messageParts = [
+    `Hi ${item.fullName || 'there'}, this is Parsom.`,
+    notifyStatusMessages[status] || `Your notify request status is now ${status}.`,
+    `Product: ${item.product?.name || 'Requested item'}${item.size ? `, Size: ${item.size}` : ''}.`,
+  ];
+
+  if (adminMessage) {
+    messageParts.push(adminMessage);
+  }
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(messageParts.join('\n\n'))}`;
+}
+
+export default function NotifyRequestsPage() {
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+  });
+
+  const [state, setState] = useState({
+    loading: true,
+    error: '',
+    items: [],
+  });
+
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({
+    status: 'pending',
+    adminNotes: '',
+  });
+
+  const loadRequests = async () => {
+    setState((prev) => ({
+      ...prev,
+      loading: true,
+      error: '',
+    }));
+
+    try {
+      const items = await fetchAdminNotifyRequests(filters);
+
+      setState({
+        loading: false,
+        error: '',
+        items,
+      });
+    } catch (error) {
+      setState({
+        loading: false,
+        error:
+          error?.response?.data?.message || 'Unable to load notify requests.',
+        items: [],
+      });
+    }
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  const handleSearch = async (event) => {
+    event.preventDefault();
+    await loadRequests();
+  };
+
+  const openEditor = (item) => {
+    setEditingId(item.id);
+    setEditForm({
+      status: item.status,
+      adminNotes: item.adminNotes || '',
+    });
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await updateAdminNotifyStatus(editingId, editForm);
+      setEditingId(null);
+      await loadRequests();
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        error:
+          error?.response?.data?.message || 'Unable to update notify request.',
+      }));
+    }
+  };
+
+  return (
+    <section className="space-y-6">
+      <div className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-6 backdrop-blur-xl">
+        <p className="text-xs uppercase  text-[#756c63]">
+          Notify Requests
+        </p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#171412]">
+          Stock Request Management
+        </h2>
+      </div>
+
+      <form
+        onSubmit={handleSearch}
+        className="grid gap-4 rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-6 backdrop-blur-xl md:grid-cols-3"
+      >
+        <input
+          type="text"
+          value={filters.search}
+          onChange={(event) =>
+            setFilters((prev) => ({ ...prev, search: event.target.value }))
+          }
+          placeholder="Search product, email, or phone"
+          className="rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] px-4 py-3 text-sm text-[#171412] outline-none"
+        />
+
+        <select
+          value={filters.status}
+          onChange={(event) =>
+            setFilters((prev) => ({ ...prev, status: event.target.value }))
+          }
+          className="rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] px-4 py-3 text-sm text-[#171412] outline-none"
+        >
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="read">Read</option>
+          <option value="stock_updated">Stock Updated</option>
+          <option value="contacted">Contacted</option>
+          <option value="completed">Completed</option>
+        </select>
+
+        <button
+          type="submit"
+          className="rounded-full border border-[#171412]/10 px-5 py-3 text-sm text-[#574f48] transition hover:bg-[#171412]/5 hover:text-[#171412]"
+        >
+          Apply Filters
+        </button>
+      </form>
+
+      {state.error ? (
+        <div className="rounded-[8px] border border-red-500/20 bg-red-50 px-4 py-4 text-sm text-red-700">
+          {state.error}
+        </div>
+      ) : null}
+
+      <div className="space-y-4">
+        {state.loading ? (
+          <div className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-6">
+            Loading notify requests...
+          </div>
+        ) : state.items.length === 0 ? (
+          <div className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-6 text-[#756c63]">
+            No notify requests found.
+          </div>
+        ) : (
+          state.items.map((item) => {
+            const activeForm = editingId === item.id ? editForm : {};
+            const whatsappHref = getWhatsAppHref(item, activeForm);
+
+            return (
+              <article
+                key={item.id}
+                className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-6 backdrop-blur-xl"
+              >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase  text-[#756c63]">
+                    {item.product?.name}
+                  </p>
+                  <h3 className="mt-3 text-2xl font-semibold text-[#171412]">
+                    {item.fullName}
+                  </h3>
+                  <p className="mt-2 text-sm leading-7 text-[#756c63]">
+                    {item.email}
+                    <br />
+                    {item.phone}
+                    <br />
+                    Size {item.size}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  {whatsappHref ? (
+                    <a
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-[#1f8f4d]/20 bg-[#1f8f4d]/10 px-4 py-2 text-sm font-medium text-[#1f7a43] transition ease-in-out hover:-translate-y-0.5 hover:bg-[#1f8f4d]/15 hover:text-[#126734]"
+                    >
+                      <MessageCircle size={16} />
+                      WhatsApp
+                    </a>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() => openEditor(item)}
+                    className="rounded-full border border-[#171412]/10 px-4 py-2 text-sm text-[#574f48] transition hover:bg-[#171412]/5"
+                  >
+                    Manage
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] p-4 text-sm text-[#756c63]">
+                Status: {item.status}
+              </div>
+
+              {editingId === item.id ? (
+                <div className="mt-5 grid gap-4 rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] p-4">
+                  <select
+                    value={editForm.status}
+                    onChange={(event) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        status: event.target.value,
+                      }))
+                    }
+                    className="rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] px-4 py-3 text-sm text-[#171412] outline-none"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="read">Read</option>
+                    <option value="stock_updated">Stock Updated</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="completed">Completed</option>
+                  </select>
+
+                  <textarea
+                    rows={4}
+                    value={editForm.adminNotes}
+                    onChange={(event) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        adminNotes: event.target.value,
+                      }))
+                    }
+                    placeholder="Admin notes"
+                    className="rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] px-4 py-3 text-sm text-[#171412] outline-none"
+                  />
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={handleUpdate}
+                      className="rounded-full bg-[#171412] px-5 py-3 text-sm font-medium text-[#fffaf4] transition hover:bg-[#8f3d2f]"
+                    >
+                      Save
+                    </button>
+
+                    {whatsappHref ? (
+                      <a
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-[#1f8f4d]/20 bg-[#1f8f4d]/10 px-5 py-3 text-sm font-medium text-[#1f7a43] transition ease-in-out hover:-translate-y-0.5 hover:bg-[#1f8f4d]/15 hover:text-[#126734]"
+                      >
+                        <MessageCircle size={16} />
+                        WhatsApp
+                      </a>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className="rounded-full border border-[#171412]/10 px-5 py-3 text-sm text-[#574f48] transition hover:bg-[#171412]/5"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              </article>
+            );
+          })
+        )}
+      </div>
+    </section>
+  );
+}

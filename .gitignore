@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.vite/
+
+.env
+.env.*
+!.env.example
+
+/uploads/
+apps/api/uploads/
+logs/
+*.log
+
+tmp/
+.DS_Store
+Thumbs.db
