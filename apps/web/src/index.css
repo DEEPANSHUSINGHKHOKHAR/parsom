@@ -1,0 +1,142 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  --font-display: "Cormorant Garamond", serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --background: #0a0a0b;
+  --foreground: #f5f2ed;
+  --bg-base: #0a0a0b;
+  --bg-elevated: #111214;
+  --bg-panel: #16181b;
+  --bg-panel-2: #1a1c20;
+  --glass-soft: rgba(255, 255, 255, 0.08);
+  --glass-strong: rgba(255, 255, 255, 0.12);
+  --glass-stroke: rgba(255, 255, 255, 0.1);
+  --text-primary: #f5f2ed;
+  --text-secondary: #b9b2a9;
+  --text-muted: #8b847b;
+  --text-inverse: #0a0a0b;
+  --border-soft: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-focus: rgba(231, 222, 210, 0.42);
+  --accent-primary: #e7ded2;
+  --accent-secondary: #8d7f73;
+  --accent-success: #8fae8b;
+  --accent-warning: #b69a62;
+  --accent-error: #a86d6d;
+  --overlay-hero-top: rgba(0, 0, 0, 0.18);
+  --overlay-hero-bottom: rgba(0, 0, 0, 0.56);
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.28);
+  --shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 16px 48px rgba(0, 0, 0, 0.36);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-background-base: var(--bg-base);
+  --color-background-elevated: var(--bg-elevated);
+  --color-background-panel: var(--bg-panel);
+  --color-background-panel2: var(--bg-panel-2);
+  --color-foreground-primary: var(--text-primary);
+  --color-foreground-secondary: var(--text-secondary);
+  --color-foreground-muted: var(--text-muted);
+  --color-foreground-inverse: var(--text-inverse);
+  --color-glass-soft: var(--glass-soft);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-stroke: var(--glass-stroke);
+  --color-border-soft: var(--border-soft);
+  --color-border-strong: var(--border-strong);
+  --color-border-focus: var(--border-focus);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-success: var(--accent-success);
+  --color-accent-warning: var(--accent-warning);
+  --color-accent-error: var(--accent-error);
+  --color-overlay-hero-top: var(--overlay-hero-top);
+  --color-overlay-hero-bottom: var(--overlay-hero-bottom);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  text-rendering: geometricPrecision;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.text-display-1 {
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 7vw, 7.5rem);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+
+.text-display-2 {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 4.2vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+.text-display-3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 2.2vw, 2.25rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.text-body-lg {
+  font-size: 1.125rem;
+  line-height: 1.9;
+}
+
+.text-body {
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.text-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.text-caption {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.text-label {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}

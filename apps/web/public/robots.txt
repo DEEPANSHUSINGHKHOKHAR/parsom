@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /cart
+Disallow: /checkout
+Disallow: /forgot-password
+Disallow: /login
+Disallow: /register
+Disallow: /thank-you
+
+Sitemap: https://parsomattire.com/sitemap.xml

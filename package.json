@@ -1,0 +1,15 @@
+{
+  "name": "brand",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Parsom brand applications",
+  "scripts": {
+    "check:api": "npm --prefix apps/api run check",
+    "lint:web": "npm --prefix apps/web run lint",
+    "lint:admin": "npm --prefix apps/admin run lint",
+    "build:web": "npm --prefix apps/web run build",
+    "build:admin": "npm --prefix apps/admin run build",
+    "start:api": "npm --prefix apps/api start",
+    "ci": "npm run check:api && npm run lint:web && npm run build:web && npm run lint:admin && npm run build:admin"
+  }
+}
