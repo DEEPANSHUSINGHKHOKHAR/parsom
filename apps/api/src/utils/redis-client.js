@@ -23,7 +23,9 @@ async function closeRedis() {
   if (!redisClient) return;
 
   try {
-    await redisClient.quit();
+    const client = redisClient;
+    redisClient = null;
+    await client.quit();
   } catch (error) {
     logger.error({ err: error }, 'Redis shutdown failed');
   }

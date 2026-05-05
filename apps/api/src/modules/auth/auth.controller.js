@@ -17,7 +17,7 @@ function adminCsrfCookieOptions() {
   const isProduction = process.env.NODE_ENV === 'production';
 
   return {
-    httpOnly: true,
+    httpOnly: false,
     secure: isProduction,
     sameSite: 'lax',
     path: '/',

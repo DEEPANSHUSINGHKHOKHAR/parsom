@@ -24,6 +24,7 @@ function createCsrfToken() {
 function ensureCsrfCookie(req, res) {
   const existingToken = req.cookies?.[CSRF_COOKIE];
   if (existingToken) {
+    res.setHeader(CSRF_HEADER, existingToken);
     return existingToken;
   }
 
@@ -31,6 +32,18 @@ function ensureCsrfCookie(req, res) {
   res.cookie(CSRF_COOKIE, token, csrfCookieOptions());
   res.setHeader('x-csrf-token', token);
   return token;
+}
+
+function isValidToken(headerToken, cookieToken) {
+  if (!headerToken || !cookieToken || headerToken.length !== cookieToken.length) {
+    return false;
+  }
+
+  try {
+    return crypto.timingSafeEqual(Buffer.from(headerToken), Buffer.from(cookieToken));
+  } catch (error) {
+    return false;
+  }
 }
 
 function requireCsrfToken(req, res, next) {
@@ -45,7 +58,7 @@ function requireCsrfToken(req, res, next) {
 
   const headerToken = String(req.headers[CSRF_HEADER] || '').trim();
 
-  if (!headerToken || headerToken !== cookieToken) {
+  if (!isValidToken(headerToken, cookieToken)) {
     return next(new AppError(403, 'Invalid CSRF token.'));
   }
 

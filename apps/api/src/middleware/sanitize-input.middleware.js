@@ -18,10 +18,18 @@ function sanitizeValue(value, key) {
   }
 
   if (value && typeof value === 'object') {
-    return Object.keys(value).reduce((acc, key) => {
-      acc[key] = sanitizeValue(value[key], key);
+    return Object.keys(value).reduce((acc, currentKey) => {
+      if (!Object.prototype.hasOwnProperty.call(value, currentKey)) {
+        return acc;
+      }
+
+      if (/^(__proto__|constructor|prototype)$/.test(currentKey)) {
+        return acc;
+      }
+
+      acc[currentKey] = sanitizeValue(value[currentKey], currentKey);
       return acc;
-    }, {});
+    }, Object.create(null));
   }
 
   return value;

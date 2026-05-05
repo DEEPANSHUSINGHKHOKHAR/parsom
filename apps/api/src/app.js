@@ -123,9 +123,10 @@ app.use(express.json({ limit: env.REQUEST_BODY_LIMIT, strict: true }));
 app.use(express.urlencoded({ extended: true, limit: env.URLENCODED_BODY_LIMIT }));
 app.use(sanitizeInput);
 app.use('/uploads', express.static(uploadsRoot));
-app.use(apiLimiter);
 
 app.use('/api/health', healthRoutes);
+
+app.use(apiLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
