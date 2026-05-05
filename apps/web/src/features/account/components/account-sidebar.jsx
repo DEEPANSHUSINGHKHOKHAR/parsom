@@ -4,8 +4,7 @@ const tabs = [
   { key: 'addresses', label: 'Addresses' },
   { key: 'wishlist', label: 'Wishlist' },
   { key: 'notify', label: 'Notify Requests' },
-  { key: 'reviews', label: 'Reviews' },
-  { key: 'invoices', label: 'Invoices' },
+  { key: 'reviews', label: 'Website Review' },
   { key: 'security', label: 'Change Password' },
 ];
 

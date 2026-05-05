@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { Heart, Menu, ShoppingBag, User, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import clsx from 'clsx';
 import { siteConfig } from '../../config/site-config';
@@ -142,7 +142,7 @@ export default function Navbar({ tone = 'dark' }) {
               {siteConfig.logoText}
             </span>
             <span className={clsx('mt-2 text-[8px] uppercase leading-none tracking-[0.48em]', secondaryText)}>
-              Luxury Streetwear
+              Luxury Wordrobe
             </span>
           </Link>
 
@@ -209,19 +209,19 @@ export default function Navbar({ tone = 'dark' }) {
 
           <div className={clsx('flex items-center gap-5 md:gap-6', secondaryText)}>
             <Link
-              to="/collection"
-              className={clsx('transition', hoverText)}
-              aria-label="Search collection"
-            >
-              <Search size={22} strokeWidth={2} />
-            </Link>
-
-            <Link
               to={token ? '/account' : '/login'}
               className={clsx('transition', hoverText)}
               aria-label="Account"
             >
               <User size={22} strokeWidth={2} />
+            </Link>
+
+            <Link
+              to={token ? '/account?tab=wishlist' : '/login'}
+              className={clsx('transition', hoverText)}
+              aria-label="Wishlist"
+            >
+              <Heart size={22} strokeWidth={2} />
             </Link>
 
             <Link
@@ -445,6 +445,13 @@ export default function Navbar({ tone = 'dark' }) {
                 className={clsx('text-body', secondaryText)}
               >
                 Account
+              </NavLink>
+
+              <NavLink
+                to={token ? '/account?tab=wishlist' : '/login'}
+                className={clsx('text-body', secondaryText)}
+              >
+                Wishlist
               </NavLink>
             </div>
           </motion.div>

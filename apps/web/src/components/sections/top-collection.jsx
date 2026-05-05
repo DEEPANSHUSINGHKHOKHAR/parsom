@@ -111,7 +111,7 @@ export default function TopCollection() {
         <div className="mb-16 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
             <span className="mb-4 block text-label text-accent-primary">Featured</span>
-            <h2 className="text-display-2 text-foreground-primary">Shop PARSOM Collections</h2>
+            <h2 className="text-display-2 text-foreground-primary">Shop PARSOM ATTIRE Collections</h2>
             <p className="mt-6 text-body-lg text-foreground-secondary">
               Explore our latest categories, handcrafted styles, and upcoming drops from PARSOM ATTIRE.
             </p>
@@ -150,7 +150,7 @@ export default function TopCollection() {
                     {item.title}
                   </h3>
                   <p className="mt-2 hidden max-w-xs text-body-sm text-foreground-secondary opacity-0 transition-opacity duration-500 group-hover:opacity-100 sm:line-clamp-2 md:mt-4">
-                    Discover available pieces and latest updates from this PARSOM category.
+                    Discover available pieces and latest updates from this PARSOM ATTIRE category.
                   </p>
                 </div>
               </motion.article>

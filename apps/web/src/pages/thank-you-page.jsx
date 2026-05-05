@@ -12,6 +12,18 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value));
 
+const formatDateTime = (value) => {
+  if (!value) return 'Not available';
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+};
+
 export default function ThankYouPage() {
   const [orderSnapshot, setOrderSnapshot] = useState(null);
 
@@ -41,6 +53,7 @@ export default function ThankYouPage() {
   }
 
   const { order, customer, items } = orderSnapshot;
+  const isCodOrder = order?.paymentMethod === 'cod';
 
   return (
     <PageShell>
@@ -55,7 +68,9 @@ export default function ThankYouPage() {
               Thank You, {customer?.firstName || 'Customer'}
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-body text-foreground-secondary">
-              Your order has been created successfully and your WhatsApp confirmation flow has been prepared.
+              {isCodOrder
+                ? 'Your COD order has been placed successfully. Our team can now review this legacy-access order in admin.'
+                : 'Your order has been created successfully and your payment confirmation has been recorded.'}
             </p>
 
             <div className="mt-10 grid gap-4 border border-border-soft bg-background-panel p-6 text-left">
@@ -66,6 +81,14 @@ export default function ThankYouPage() {
               <div className="flex items-center justify-between text-sm text-foreground-secondary">
                 <span>Status</span>
                 <span>{order.status}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-foreground-secondary">
+                <span>Payment Method</span>
+                <span>{order.paymentMethod || 'N/A'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-foreground-secondary">
+                <span>Ordered On</span>
+                <span>{formatDateTime(order.placedAt)}</span>
               </div>
               <div className="flex items-center justify-between text-sm text-foreground-secondary">
                 <span>Total Items</span>

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Star } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import Badge from '../../../components/ui/badge';
 import PriceBlock from '../../../components/ui/price-block';
 
@@ -22,35 +22,6 @@ function getBadge(product) {
   }
 
   return null;
-}
-
-export function ProductRating({ rating = 0, count = 0, tone = 'dark', compact = false }) {
-  const numericRating = Number(rating || 0);
-  const reviewCount = Number(count || 0);
-  const label = reviewCount > 0 ? numericRating.toFixed(1) : 'New';
-  const isLight = tone === 'light';
-
-  return (
-    <div
-      className={
-        isLight
-          ? 'flex items-center gap-1.5 text-[#756c63]'
-          : 'flex items-center gap-1.5 text-foreground-secondary'
-      }
-      aria-label={reviewCount > 0 ? `${label} out of 5 from ${reviewCount} reviews` : 'No ratings yet'}
-    >
-      <Star
-        size={compact ? 13 : 15}
-        className={reviewCount > 0 ? 'fill-[#b69a62] text-[#b69a62]' : 'text-current'}
-      />
-      <span className={compact ? 'text-xs font-medium leading-4' : 'text-sm font-medium'}>
-        {label}
-      </span>
-      <span className={compact ? 'text-[0.68rem] leading-4' : 'text-xs'}>
-        {reviewCount > 0 ? `(${reviewCount})` : 'No reviews'}
-      </span>
-    </div>
-  );
 }
 
 function ProductImageFallback({ isLight }) {
@@ -77,11 +48,6 @@ export default function ProductCard({ product, tone = 'dark', compact = false, o
       : availableStock > 1 && availableStock <= 5
         ? 'Few left'
         : '';
-  const ratingLabel =
-    Number(product?.reviewCount || 0) > 0
-      ? `${Number(product?.avgRating || 0).toFixed(1)}`
-      : 'New';
-  const reviewCount = Number(product?.reviewCount || 0);
   const productUrl = `/products/${product.slug}`;
 
   const handleCardClick = (event) => {
@@ -134,14 +100,7 @@ export default function ProductCard({ product, tone = 'dark', compact = false, o
             <ProductImageFallback isLight={isLight} />
           )}
 
-          <div className="absolute inset-x-2 bottom-2 flex items-end justify-between gap-2">
-            <div className="inline-flex items-center gap-1 rounded-full bg-white/92 px-2 py-1 text-[0.68rem] font-semibold text-[#171412] shadow-[0_6px_18px_rgba(23,20,18,0.12)] backdrop-blur-sm">
-              <Star size={11} className="fill-[#0f9d8a] text-[#0f9d8a]" />
-              <span>{ratingLabel}</span>
-              <span className="text-[#756c63]">|</span>
-              <span>{reviewCount > 999 ? `${Math.round(reviewCount / 100) / 10}k` : reviewCount || '0'}</span>
-            </div>
-
+          <div className="absolute inset-x-2 bottom-2 flex items-end justify-end gap-2">
             <button
               type="button"
               aria-label={`Save ${product?.name || 'product'} to wishlist`}

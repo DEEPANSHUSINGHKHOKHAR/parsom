@@ -1,8 +1,55 @@
 import { useEffect, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import {
   fetchAdminReturnRequests,
+  refundAdminReturnRequest,
   updateAdminReturnRequest,
 } from '../services/admin-returns-service';
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+
+function getWhatsAppHref(item, draft = {}) {
+  const phone = `${item?.customerPhone || ''}`.replace(/\D/g, '');
+
+  if (!phone) {
+    return '';
+  }
+
+  const status = draft.status || item.status;
+  const adminNotes = (draft.adminNotes ?? item.adminNotes ?? '').trim();
+  const customerName = item.customerName || 'there';
+  const refundStatus = item.refundStatus || 'not started';
+
+  const messageParts = [
+    `Hi ${customerName}, this is Parsom Attire.`,
+    `We are writing about your return request for order ${item.orderNumber}.`,
+    `Product: ${item.productName} / Size ${item.size}.`,
+    `Current return status: ${status}.`,
+  ];
+
+  if (status === 'approved') {
+    messageParts.push('Your return request has been approved by our admin team.');
+  }
+
+  if (['processed', 'captured', 'refunded'].includes(refundStatus)) {
+    messageParts.push(
+      `Your refund of ${formatCurrency(item.refundAmount ?? item.lineTotal)} has been processed.`
+    );
+  } else if (item.paymentMethod === 'razorpay' && status === 'approved') {
+    messageParts.push('Your refund will be processed to the original Razorpay payment source.');
+  }
+
+  if (adminNotes) {
+    messageParts.push(`Note: ${adminNotes}`);
+  }
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(messageParts.join('\n\n'))}`;
+}
 
 export default function ReturnRequestsPage() {
   const [filters, setFilters] = useState({
@@ -15,6 +62,10 @@ export default function ReturnRequestsPage() {
     items: [],
   });
   const [drafts, setDrafts] = useState({});
+  const [refundState, setRefundState] = useState({
+    loadingId: null,
+    error: '',
+  });
 
   const loadRequests = async () => {
     setState((prev) => ({ ...prev, loading: true, error: '' }));
@@ -64,6 +115,35 @@ export default function ReturnRequestsPage() {
     }
   };
 
+  const handleRefund = async (item) => {
+    if (
+      !window.confirm(
+        `Refund ${formatCurrency(item.lineTotal)} for ${item.orderNumber}?`
+      )
+    ) {
+      return;
+    }
+
+    setRefundState({
+      loadingId: item.id,
+      error: '',
+    });
+
+    try {
+      await refundAdminReturnRequest(item.id);
+      await loadRequests();
+      setRefundState({
+        loadingId: null,
+        error: '',
+      });
+    } catch (error) {
+      setRefundState({
+        loadingId: null,
+        error: error?.response?.data?.message || 'Unable to process refund.',
+      });
+    }
+  };
+
   return (
     <section className="space-y-6">
       <div className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-6">
@@ -107,9 +187,9 @@ export default function ReturnRequestsPage() {
         </button>
       </form>
 
-      {state.error ? (
+      {state.error || refundState.error ? (
         <div className="rounded-[8px] border border-red-500/20 bg-red-50 px-4 py-4 text-sm text-red-700">
-          {state.error}
+          {state.error || refundState.error}
         </div>
       ) : null}
 
@@ -128,6 +208,15 @@ export default function ReturnRequestsPage() {
               key={item.id}
               className="space-y-4 rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-5"
             >
+              {(() => {
+                const activeDraft = drafts[item.id] || {
+                  status: item.status,
+                  adminNotes: item.adminNotes || '',
+                };
+                const whatsappHref = getWhatsAppHref(item, activeDraft);
+
+                return (
+                  <>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase text-[#756c63]">{item.orderNumber}</p>
@@ -135,7 +224,10 @@ export default function ReturnRequestsPage() {
                     {item.productName}
                   </h3>
                   <p className="mt-2 text-sm text-[#756c63]">
-                    {item.customerName} / {item.customerEmail} / Size {item.size}
+                    {item.customerName} / {item.customerEmail} / {item.customerPhone || 'No phone'} / Size {item.size}
+                  </p>
+                  <p className="mt-2 text-sm text-[#756c63]">
+                    {formatCurrency(item.lineTotal)} / {item.paymentMethod} / {item.paymentStatus}
                   </p>
                 </div>
                 <span className="rounded-full border border-[#171412]/10 px-4 py-2 text-xs uppercase text-[#574f48]">
@@ -145,6 +237,30 @@ export default function ReturnRequestsPage() {
 
               <div className="rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] p-4 text-sm leading-7 text-[#574f48]">
                 {item.reason}
+              </div>
+
+              <div className="grid gap-3 rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] p-4 text-sm text-[#574f48] md:grid-cols-2">
+                <div>
+                  <p className="text-xs uppercase text-[#756c63]">Refund status</p>
+                  <p className="mt-1">{item.refundStatus || 'Not started'}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase text-[#756c63]">Refund amount</p>
+                  <p className="mt-1">
+                    {item.refundAmount !== null ? formatCurrency(item.refundAmount) : formatCurrency(item.lineTotal)}
+                  </p>
+                </div>
+                {item.refundReference ? (
+                  <div className="md:col-span-2">
+                    <p className="text-xs uppercase text-[#756c63]">Refund reference</p>
+                    <p className="mt-1 break-all">{item.refundReference}</p>
+                  </div>
+                ) : null}
+                {item.refundError ? (
+                  <div className="md:col-span-2 rounded-[8px] border border-red-500/20 bg-red-50 px-4 py-3 text-red-700">
+                    {item.refundError}
+                  </div>
+                ) : null}
               </div>
 
               <div className="grid gap-4 md:grid-cols-[200px_1fr_auto]">
@@ -189,6 +305,37 @@ export default function ReturnRequestsPage() {
                   Save
                 </button>
               </div>
+
+              <div className="flex flex-wrap justify-end gap-3">
+                {whatsappHref ? (
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-[#1f8f4d]/20 bg-[#1f8f4d]/10 px-5 py-3 text-sm font-medium text-[#1f7a43] transition hover:bg-[#1f8f4d]/15 hover:text-[#126734]"
+                  >
+                    <MessageCircle size={16} />
+                    WhatsApp
+                  </a>
+                ) : null}
+
+              {item.status === 'approved' &&
+              item.paymentMethod === 'razorpay' &&
+              item.paymentStatus === 'paid' &&
+              !['processed', 'captured', 'refunded'].includes(item.refundStatus || '') ? (
+                  <button
+                    type="button"
+                    onClick={() => handleRefund(item)}
+                    disabled={refundState.loadingId === item.id}
+                    className="rounded-full border border-[#8f3d2f]/20 bg-[#8f3d2f] px-5 py-3 text-sm font-medium text-[#fffaf4] transition hover:bg-[#6f2f24] disabled:opacity-60"
+                  >
+                    {refundState.loadingId === item.id ? 'Refunding...' : 'Refund via Razorpay'}
+                  </button>
+              ) : null}
+              </div>
+                  </>
+                );
+              })()}
             </article>
           ))
         )}

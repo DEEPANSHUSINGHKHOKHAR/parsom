@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CreditCard, Download, FileText, Package, Truck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { CreditCard, Truck } from 'lucide-react';
 import EmptyState from '../../../components/ui/empty-state';
 import Button from '../../../components/ui/button';
 import FormField from '../../../components/ui/form-field';
@@ -9,25 +9,17 @@ import PasswordField from '../../auth/components/password-field';
 import {
   fetchMyAddresses,
   createAddress,
+  updateAddress,
   setDefaultAddress,
   deleteAddress,
 } from '../../../services/addresses-service';
-import {
-  fetchMyOrders,
-  createReturnRequest,
-  downloadMyInvoice,
-} from '../../../services/orders-service';
-import {
-  createReview,
-  fetchEligibleReviewItems,
-  fetchMyReviews,
-} from '../../../services/reviews-service';
+import { fetchMyOrders, createReturnRequest } from '../../../services/orders-service';
+import { createReview, updateReview, fetchMyReviews } from '../../../services/reviews-service';
 import { fetchMyNotifyRequests } from '../../../services/notify-service';
 import {
   fetchMyWishlist,
   removeWishlistItem,
 } from '../../../services/wishlist-service';
-import { uploadReviewMedia } from '../../../services/uploads-service';
 import MediaPlaceholder from '../../../components/ui/media-placeholder';
 import {
   changePassword,
@@ -106,29 +98,6 @@ const initialAddressForm = {
   isDefault: false,
 };
 
-function ReviewMediaPreview({ item }) {
-  if (!item?.url) return null;
-
-  if (item.type === 'video') {
-    return (
-      <video
-        src={item.url}
-        controls
-        className="aspect-square w-full rounded-[8px] border border-[#171412]/10 bg-[#171412] object-contain"
-      />
-    );
-  }
-
-  return (
-    <img
-      src={item.url}
-      alt="Review media"
-      className="aspect-square w-full rounded-[8px] border border-[#171412]/10 bg-[#ede8df] object-contain"
-      loading="lazy"
-    />
-  );
-}
-
 function OrderItemImage({ item }) {
   if (!item?.primaryImage) {
     return (
@@ -171,12 +140,16 @@ export default function AccountPanel({ activeTab, actor }) {
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [reviews, setReviews] = useState([]);
-  const [eligibleReviewItems, setEligibleReviewItems] = useState([]);
   const [notifyRequests, setNotifyRequests] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [addressForm, setAddressForm] = useState(initialAddressForm);
-  const [reviewForm, setReviewForm] = useState({});
-  const [reviewUploadState, setReviewUploadState] = useState({});
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' });
+  const [reviewStatus, setReviewStatus] = useState({
+    loading: false,
+    error: '',
+    success: '',
+  });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -206,7 +179,7 @@ export default function AccountPanel({ activeTab, actor }) {
     () => [
       { label: 'Orders', value: orders.length },
       { label: 'Addresses', value: addresses.length },
-      { label: 'Reviews', value: reviews.length },
+      { label: 'Website Review', value: reviews.length },
       { label: 'Notify Requests', value: notifyRequests.length },
     ],
     [orders.length, addresses.length, reviews.length, notifyRequests.length]
@@ -248,13 +221,14 @@ export default function AccountPanel({ activeTab, actor }) {
         }
 
         if (activeTab === 'reviews') {
-          const [reviewsData, eligibleData] = await Promise.all([
-            fetchMyReviews(),
-            fetchEligibleReviewItems(),
-          ]);
+          const reviewsData = await fetchMyReviews();
           if (!ignore) {
             setReviews(reviewsData);
-            setEligibleReviewItems(eligibleData);
+            const ownReview = reviewsData[0];
+            setReviewForm({
+              rating: Number(ownReview?.rating || 0),
+              comment: ownReview?.comment || '',
+            });
           }
         }
 
@@ -268,10 +242,6 @@ export default function AccountPanel({ activeTab, actor }) {
           if (!ignore) setWishlist(data);
         }
 
-        if (activeTab === 'invoices') {
-          const data = await fetchMyOrders();
-          if (!ignore) setOrders(data);
-        }
       } catch (requestError) {
         if (!ignore) {
           setError(
@@ -309,14 +279,19 @@ export default function AccountPanel({ activeTab, actor }) {
     setAddressStatus({ loading: true, error: '' });
 
     try {
-      await createAddress(addressForm);
+      if (editingAddressId) {
+        await updateAddress(editingAddressId, addressForm);
+      } else {
+        await createAddress(addressForm);
+      }
       setAddressForm(initialAddressForm);
+      setEditingAddressId(null);
       await reloadAddresses();
     } catch (requestError) {
       setAddressStatus({
         loading: false,
         error:
-          requestError?.response?.data?.message || 'Unable to create address.',
+          requestError?.response?.data?.message || 'Unable to save address.',
       });
       return;
     }
@@ -458,71 +433,72 @@ export default function AccountPanel({ activeTab, actor }) {
     }
   };
 
-  const handleSubmitReview = async (item) => {
-    const entry = reviewForm[item.orderItemId] || {};
-
-    try {
-      await createReview({
-        productId: item.productId,
-        orderItemId: item.orderItemId,
-        rating: Number(entry.rating || 5),
-        comment: entry.comment || '',
-        imageUrl: entry.imageUrl || '',
-        media: entry.media || [],
-      });
-
-      const [reviewsData, eligibleData] = await Promise.all([
-        fetchMyReviews(),
-        fetchEligibleReviewItems(),
-      ]);
-
-      setReviews(reviewsData);
-      setEligibleReviewItems(eligibleData);
-    } catch (error) {
-      setError(error?.response?.data?.message || 'Unable to submit review.');
-    }
+  const handleEditAddress = (address) => {
+    setEditingAddressId(address.id);
+    setAddressForm({
+      fullName: address.fullName || '',
+      phone: address.phone || '',
+      addressLine1: address.addressLine1 || '',
+      addressLine2: address.addressLine2 || '',
+      city: address.city || '',
+      state: address.state || '',
+      postalCode: address.postalCode || '',
+      label: address.label || '',
+      isDefault: Boolean(address.isDefault),
+    });
   };
 
-  const handleReviewMediaUpload = async (orderItemId, files) => {
-    const selectedFiles = Array.from(files || []).slice(0, 6);
-    if (!selectedFiles.length) return;
+  const handleSubmitReview = async (event) => {
+    event.preventDefault();
+    const rating = Number(reviewForm.rating || 0);
+    const comment = String(reviewForm.comment || '').trim();
 
-    setReviewUploadState((prev) => ({
-      ...prev,
-      [orderItemId]: { loading: true, error: '' },
-    }));
+    if (rating < 1 || rating > 5) {
+      setReviewStatus({
+        loading: false,
+        error: 'Please choose a star rating.',
+        success: '',
+      });
+      return;
+    }
+
+    if (!comment) {
+      setReviewStatus({
+        loading: false,
+        error: 'Please add a comment with your rating.',
+        success: '',
+      });
+      return;
+    }
+
+    setReviewStatus({ loading: true, error: '', success: '' });
 
     try {
-      const results = await Promise.all(selectedFiles.map((file) => uploadReviewMedia(file)));
-      const media = results.map((result) => ({
-        type: result.type || 'image',
-        url: result.url,
-      }));
+      const existingReview = reviews[0];
+      const payload = {
+        rating,
+        comment,
+      };
 
-      setReviewForm((prev) => ({
-        ...prev,
-        [orderItemId]: {
-          ...prev[orderItemId],
-          imageUrl: prev[orderItemId]?.imageUrl || media[0]?.url || '',
-          media: [...(prev[orderItemId]?.media || []), ...media].slice(0, 6),
-        },
-      }));
+      if (existingReview?.id) {
+        await updateReview(existingReview.id, payload);
+      } else {
+        await createReview(payload);
+      }
 
-      setReviewUploadState((prev) => ({
-        ...prev,
-        [orderItemId]: { loading: false, error: '' },
-      }));
+      const reviewsData = await fetchMyReviews();
+      setReviews(reviewsData);
+      setReviewStatus({
+        loading: false,
+        error: '',
+        success: 'Thanks. Your website review is live on the homepage.',
+      });
     } catch (error) {
-      setReviewUploadState((prev) => ({
-        ...prev,
-        [orderItemId]: {
-          loading: false,
-          error:
-            error?.response?.data?.message ||
-            error?.message ||
-            'Media upload failed.',
-        },
-      }));
+      setReviewStatus({
+        loading: false,
+        error: error?.response?.data?.message || 'Unable to submit website review.',
+        success: '',
+      });
     }
   };
 
@@ -648,32 +624,6 @@ export default function AccountPanel({ activeTab, actor }) {
         </div>
       ) : null}
 
-      {orders[0] ? (
-        <div className="rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] p-4">
-          <p className="text-xs uppercase  text-[#756c63]">
-            Latest Order
-          </p>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h3 className="text-xl font-semibold text-[#171412]">
-                {orders[0].orderNumber}
-              </h3>
-              <p className="mt-2 text-sm text-[#756c63]">{orders[0].status}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-[#756c63]">Total</p>
-              <p className="text-xl font-semibold text-[#171412]">
-                {formatCurrency(orders[0].totalAmount)}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <EmptyState
-          title="No order activity yet"
-          description="Your overview cards are connected. Order data will appear here after checkout."
-        />
-      )}
     </div>
   );
 
@@ -778,6 +728,17 @@ export default function AccountPanel({ activeTab, actor }) {
                               {formatCurrency(item.lineTotal)}
                             </p>
                             <div className="mt-3 flex flex-wrap gap-3">
+                              {item.productSlug ? (
+                                <Button
+                                  as={Link}
+                                  to={`/products/${item.productSlug}`}
+                                  variant="secondary"
+                                  className="px-3 py-2 text-xs"
+                                >
+                                  Product Preview
+                                </Button>
+                              ) : null}
+
                               {item.returnRequest ? (
                                 <span className="rounded-full border border-[#171412]/10 px-3 py-2 text-xs uppercase text-[#574f48]">
                                   Return {item.returnRequest.status}
@@ -849,15 +810,6 @@ export default function AccountPanel({ activeTab, actor }) {
                         {formatDateTime(order.paidAt)}
                       </p>
                     </div>
-                    <Button
-                      variant="secondary"
-                      type="button"
-                      className="w-full gap-2 px-4 py-3"
-                      onClick={() => downloadMyInvoice(order.orderNumber)}
-                    >
-                      <Download size={16} />
-                      Invoice
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -954,9 +906,27 @@ export default function AccountPanel({ activeTab, actor }) {
             <p className="mb-3 text-sm text-red-400">{addressStatus.error}</p>
           ) : null}
 
-          <Button type="submit" disabled={addressStatus.loading}>
-            {addressStatus.loading ? 'Saving Address...' : 'Save Address'}
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" disabled={addressStatus.loading}>
+              {addressStatus.loading
+                ? 'Saving Address...'
+                : editingAddressId
+                  ? 'Update Address'
+                  : 'Save Address'}
+            </Button>
+            {editingAddressId ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setEditingAddressId(null);
+                  setAddressForm(initialAddressForm);
+                }}
+              >
+                Cancel Edit
+              </Button>
+            ) : null}
+          </div>
         </div>
       </form>
 
@@ -987,28 +957,36 @@ export default function AccountPanel({ activeTab, actor }) {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="grid w-full grid-cols-2 gap-3 sm:w-auto sm:flex sm:flex-wrap sm:justify-end">
                   {address.isDefault ? (
-                    <span className="rounded-full border border-[#171412]/10 px-4 py-2 text-xs uppercase  text-[#574f48]">
+                    <span className="col-span-2 inline-flex items-center justify-center rounded-full border border-[#a86e1f]/35 bg-[#a86e1f]/15 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[#7a4b12] sm:col-span-1">
                       Default
                     </span>
                   ) : (
-                    <Button
-                      variant="secondary"
+                    <button
                       type="button"
+                      className="col-span-2 inline-flex items-center justify-center rounded-full border border-[#a86e1f] bg-[#a86e1f] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[#8a5616] sm:col-span-1"
                       onClick={() => handleSetDefaultAddress(address.id)}
                     >
                       Set Default
-                    </Button>
+                    </button>
                   )}
 
-                  <Button
-                    variant="secondary"
+                  <button
                     type="button"
+                    className="inline-flex items-center justify-center rounded-full border border-[#c47a2c] bg-[#c47a2c] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[#a86e1f]"
+                    onClick={() => handleEditAddress(address)}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full border border-[#9b4b22] bg-[#9b4b22] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[#7a3719]"
                     onClick={() => handleDeleteAddress(address.id)}
                   >
                     Delete
-                  </Button>
+                  </button>
                 </div>
               </div>
             </article>
@@ -1025,169 +1003,75 @@ export default function AccountPanel({ activeTab, actor }) {
           Customer Area
         </p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#171412]">
-          Your Reviews
+          Review Our Website
         </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#756c63]">
+          Share one honest rating and comment for PARSOM ATTIRE. You can update it any time.
+        </p>
       </div>
 
-      <div className="space-y-4">
-        {eligibleReviewItems.length === 0 ? (
-          <EmptyState
-            title="No eligible purchases to review"
-            description="Delivered items that still need reviews will appear here."
+      <form
+        onSubmit={handleSubmitReview}
+        className="grid gap-4 rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] p-5"
+      >
+        <div className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] px-4 py-3">
+          <p className="text-xs uppercase text-[#756c63]">Your rating</p>
+          <StarRating
+            interactive
+            value={Number(reviewForm.rating || 0)}
+            onChange={(ratingValue) =>
+              setReviewForm((prev) => ({ ...prev, rating: ratingValue }))
+            }
+            className="mt-2"
           />
-        ) : (
-          eligibleReviewItems.map((item) => (
-            <article
-              key={item.orderItemId}
-              className="rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] p-5"
-            >
-              <h3 className="text-xl font-semibold text-[#171412]">{item.productName}</h3>
-              <p className="mt-2 text-sm text-[#756c63]">
-                Order {item.orderNumber} · Size {item.size}
-              </p>
+        </div>
 
-              <div className="mt-4 grid gap-4">
-                <div className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] px-4 py-3">
-                  <p className="text-xs uppercase text-[#756c63]">Your rating</p>
-                  <StarRating
-                    interactive
-                    value={Number(reviewForm[item.orderItemId]?.rating || 5)}
-                    onChange={(ratingValue) =>
-                      setReviewForm((prev) => ({
-                        ...prev,
-                        [item.orderItemId]: {
-                          ...prev[item.orderItemId],
-                          rating: ratingValue,
-                        },
-                      }))
-                    }
-                    className="mt-2"
-                  />
-                </div>
+        <textarea
+          rows={5}
+          value={reviewForm.comment || ''}
+          onChange={(event) =>
+            setReviewForm((prev) => ({ ...prev, comment: event.target.value }))
+          }
+          placeholder="Write a comment about your website experience"
+          className="rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] px-4 py-3 text-sm text-[#171412] outline-none"
+        />
 
-                <textarea
-                  rows={4}
-                  value={reviewForm[item.orderItemId]?.comment || ''}
-                  onChange={(event) =>
-                    setReviewForm((prev) => ({
-                      ...prev,
-                      [item.orderItemId]: {
-                        ...prev[item.orderItemId],
-                        comment: event.target.value,
-                      },
-                    }))
-                  }
-                  placeholder="Write your review"
-                  className="rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] px-4 py-3 text-sm text-[#171412] outline-none"
-                />
+        {reviewStatus.error ? (
+          <p className="text-sm text-red-400">{reviewStatus.error}</p>
+        ) : null}
+        {reviewStatus.success ? (
+          <p className="text-sm text-[#5a7d4f]">{reviewStatus.success}</p>
+        ) : null}
 
-                <input
-                  type="file"
-                  multiple
-                  accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
-                  onChange={(event) =>
-                    handleReviewMediaUpload(
-                      item.orderItemId,
-                      event.target.files
-                    )
-                  }
-                  className="rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] px-4 py-3 text-sm text-[#171412] outline-none"
-                />
+        <div>
+          <Button type="submit" disabled={reviewStatus.loading}>
+            {reviewStatus.loading
+              ? 'Saving Review...'
+              : reviews[0]
+                ? 'Update Website Review'
+                : 'Submit Website Review'}
+          </Button>
+        </div>
+      </form>
 
-                {reviewUploadState[item.orderItemId]?.loading ? (
-                  <p className="text-sm text-[#756c63]">Uploading media...</p>
-                ) : null}
+      {reviews[0] ? (
+        <article className="rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase  text-[#756c63]">Your current review</p>
+              <StarRating rating={reviews[0].rating} className="mt-2" />
+            </div>
 
-                {reviewUploadState[item.orderItemId]?.error ? (
-                  <p className="text-sm text-red-400">
-                    {reviewUploadState[item.orderItemId].error}
-                  </p>
-                ) : null}
+            <span className="text-sm text-[#756c63]">
+              {reviews[0].isPublished ? 'Published on homepage' : 'Hidden'}
+            </span>
+          </div>
 
-                {reviewForm[item.orderItemId]?.media?.length ? (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {reviewForm[item.orderItemId].media.map((mediaItem, index) => (
-                      <div key={`${mediaItem.url}-${index}`} className="space-y-2">
-                        <ReviewMediaPreview item={mediaItem} />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setReviewForm((prev) => {
-                              const nextMedia = (prev[item.orderItemId]?.media || []).filter(
-                                (_, mediaIndex) => mediaIndex !== index
-                              );
-
-                              return {
-                                ...prev,
-                                [item.orderItemId]: {
-                                  ...prev[item.orderItemId],
-                                  media: nextMedia,
-                                  imageUrl: nextMedia[0]?.url || '',
-                                },
-                              };
-                            })
-                          }
-                          className="w-full rounded-full border border-[#171412]/10 px-3 py-2 text-xs uppercase text-[#574f48] transition hover:bg-[#171412]/5"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                <Button type="button" onClick={() => handleSubmitReview(item)}>
-                  Submit Review
-                </Button>
-              </div>
-            </article>
-          ))
-        )}
-      </div>
-
-      <div className="space-y-4">
-        {reviews.length === 0 ? (
-          <EmptyState
-            title="No reviews submitted yet"
-            description="Submitted reviews will appear here."
-          />
-        ) : (
-          reviews.map((review) => (
-            <article
-              key={review.id}
-              className="rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] p-5"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase  text-[#756c63]">
-                    {review.product?.name}
-                  </p>
-                  <StarRating rating={review.rating} className="mt-2" />
-                </div>
-
-                <span className="text-sm text-[#756c63]">
-                  {review.isPublished ? 'Published' : 'Hidden'}
-                </span>
-              </div>
-
-              <p className="mt-4 text-sm leading-7 text-[#756c63]">
-                {review.comment}
-              </p>
-
-              {review.media?.length ? (
-                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {review.media.map((mediaItem, index) => (
-                    <ReviewMediaPreview
-                      key={`${review.id}-${mediaItem.url}-${index}`}
-                      item={mediaItem}
-                    />
-                  ))}
-                </div>
-              ) : null}
-            </article>
-          ))
-        )}
-      </div>
+          <p className="mt-4 text-sm leading-7 text-[#756c63]">
+            {reviews[0].comment}
+          </p>
+        </article>
+      ) : null}
     </div>
   );
 
@@ -1258,7 +1142,10 @@ export default function AccountPanel({ activeTab, actor }) {
               key={item.id}
               className="flex flex-wrap items-center justify-between gap-4 rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] p-5"
             >
-              <div className="flex min-w-0 items-center gap-4">
+              <Link
+                to={`/products/${item.product?.slug}`}
+                className="flex min-w-0 flex-1 items-center gap-4 transition-opacity hover:opacity-80"
+              >
                 <div className="h-24 w-20 shrink-0 overflow-hidden rounded-[8px] border border-[#171412]/10 bg-[#ede8df]">
                   {item.product?.primaryImage ? (
                     <img
@@ -1285,104 +1172,37 @@ export default function AccountPanel({ activeTab, actor }) {
                   <h3 className="mt-2 text-xl font-semibold text-[#171412]">
                     {item.product?.name}
                   </h3>
+                  <p className="mt-2 text-sm font-medium text-[#574f48]">
+                    View product
+                  </p>
                 </div>
-              </div>
+              </Link>
 
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={async () => {
-                  try {
-                    await removeWishlistItem(item.product.id);
-                    const data = await fetchMyWishlist();
-                    setWishlist(data);
-                  } catch (error) {
-                    setError(
-                      error?.response?.data?.message ||
-                        'Unable to remove wishlist item.'
-                    );
-                  }
-                }}
-              >
-                Remove
-              </Button>
-            </article>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderInvoices = () => (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs uppercase  text-[#756c63]">
-          Customer Area
-        </p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#171412]">
-          Invoices
-        </h2>
-      </div>
-
-      {orders.length === 0 ? (
-        <EmptyState
-          title="No invoices available"
-          description="Invoices will appear after you place orders."
-        />
-      ) : (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <article
-              key={order.orderNumber}
-              className="rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] p-5"
-            >
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex min-w-0 gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[8px] border border-[#171412]/10 bg-[#ede8df] text-[#171412]">
-                    <FileText size={24} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs uppercase text-[#756c63]">
-                      Invoice for {order.orderNumber}
-                    </p>
-                    <h3 className="mt-2 text-xl font-semibold text-[#171412]">
-                      {formatCurrency(order.totalAmount)}
-                    </h3>
-                    <p className="mt-2 text-sm text-[#756c63]">
-                      {formatDate(order.placedAt)} / {order.paymentStatus}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 text-sm text-[#574f48] lg:min-w-[360px]">
-                  <div className="flex items-start justify-between gap-4">
-                    <span className="inline-flex items-center gap-2 text-[#756c63]">
-                      <CreditCard size={15} />
-                      Transaction
-                    </span>
-                    <span className="max-w-[210px] break-all text-right font-semibold text-[#171412]">
-                      {order.razorpayPaymentId || 'Pending'}
-                    </span>
-                  </div>
-                  <div className="flex items-start justify-between gap-4">
-                    <span className="inline-flex items-center gap-2 text-[#756c63]">
-                      <Package size={15} />
-                      Razorpay order
-                    </span>
-                    <span className="max-w-[210px] break-all text-right">
-                      {order.razorpayOrderId || 'Not available'}
-                    </span>
-                  </div>
-                </div>
-
+              <div className="flex items-center gap-3">
+                <Button
+                  as={Link}
+                  to={`/products/${item.product?.slug}`}
+                  variant="secondary"
+                >
+                  View product
+                </Button>
                 <Button
                   variant="secondary"
                   type="button"
-                  className="gap-2 px-5 py-3"
-                  onClick={() => downloadMyInvoice(order.orderNumber)}
+                  onClick={async () => {
+                    try {
+                      await removeWishlistItem(item.product.id);
+                      const data = await fetchMyWishlist();
+                      setWishlist(data);
+                    } catch (error) {
+                      setError(
+                        error?.response?.data?.message ||
+                          'Unable to remove wishlist item.'
+                      );
+                    }
+                  }}
                 >
-                  <Download size={16} />
-                  Download
+                  Remove
                 </Button>
               </div>
             </article>
@@ -1493,15 +1313,14 @@ export default function AccountPanel({ activeTab, actor }) {
           ) : null}
 
           <div>
-            <Button
+            <button
               type="button"
-              variant="secondary"
-              className="w-full border-[#b23b3b] bg-[#b23b3b] text-white hover:bg-[#963030] hover:text-white sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full border border-[#b23b3b] bg-[#b23b3b] px-6 py-4 text-xs font-semibold uppercase tracking-wide text-white shadow-sm transition hover:bg-[#963030] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
               disabled={deleteStatus.loading}
               onClick={handleDeleteAccount}
             >
               {deleteStatus.loading ? 'Deleting...' : 'Delete Account'}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
@@ -1515,7 +1334,6 @@ export default function AccountPanel({ activeTab, actor }) {
     reviews: renderReviews(),
     notify: renderNotify(),
     wishlist: renderWishlist(),
-    invoices: renderInvoices(),
     security: renderSecurity(),
   };
 

@@ -5,7 +5,7 @@ const sections = [
     title: 'Return Window',
     points: [
       'Return or exchange requests must be raised within 2 to 3 days after delivery.',
-      'After this delivery window, PARSOM ATTIRES will not accept return or exchange requests.',
+      'After this delivery window, PARSOM ATTIRE will not accept return or exchange requests.',
       'Returns or exchanges are accepted only when the product received is damaged, defective, incorrect, or has a clear manufacturing issue.',
       'Change of mind, wrong size selection, wrong color expectation, or personal preference after delivery will not qualify for return or exchange.',
     ],
@@ -23,7 +23,7 @@ const sections = [
     points: [
       'Customers must record a clear full unboxing video from the moment the sealed package is opened.',
       'The video should clearly show the package, shipping label, product condition, tags, and any visible defect or damage.',
-      'If the customer does not provide a proper unboxing video, PARSOM ATTIRES may reject the return, exchange, or damage claim.',
+      'If the customer does not provide a proper unboxing video, PARSOM ATTIRE may reject the return, exchange, or damage claim.',
       'Edited, paused, unclear, or incomplete videos may not be accepted as valid proof.',
     ],
   },
@@ -40,7 +40,7 @@ const sections = [
     points: [
       'Approved returns may be resolved through replacement, exchange, store credit, or refund depending on the case and stock availability.',
       'Refunds, where approved, will be processed to the original payment source where applicable.',
-      'Original shipping charges, convenience fees, payment gateway charges, duties, or similar charges are generally non-refundable unless the issue was caused by PARSOM ATTIRES.',
+      'Original shipping charges, convenience fees, payment gateway charges, duties, or similar charges are generally non-refundable unless the issue was caused by PARSOM ATTIRE.',
       'Exchange requests are subject to stock availability when the returned item is received and approved.',
     ],
   },
@@ -49,7 +49,7 @@ const sections = [
     points: [
       'Customers should report damaged, defective, missing, or incorrect items within 2 to 3 days after delivery.',
       'The customer must share the order number, full unboxing video, clear photos, and a short issue description.',
-      'If the claim is approved, PARSOM ATTIRES may offer a replacement, exchange, refund, or another suitable resolution based on stock status and the nature of the issue.',
+      'If the claim is approved, PARSOM ATTIRE may offer a replacement, exchange, refund, or another suitable resolution based on stock status and the nature of the issue.',
     ],
   },
   {
@@ -67,7 +67,7 @@ export default function ReturnsPage() {
     <LegalPage
       eyebrow="Support"
       title="Return Policy"
-      intro="This return policy explains how PARSOM ATTIRES handles return requests, exchanges, damaged products, defective items, and customer support after delivery."
+      intro="This return policy explains how PARSOM ATTIRE handles return requests, exchanges, damaged products, defective items, and customer support after delivery."
       sections={sections}
     />
   );

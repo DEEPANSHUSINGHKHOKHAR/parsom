@@ -175,6 +175,7 @@ async function listOrders(req, res, next) {
     const data = await adminService.listAdminOrders({
       search: req.query.search || '',
       status: req.query.status || '',
+      paymentMethod: req.query.paymentMethod || '',
     });
 
     res.status(200).json({
@@ -357,6 +358,32 @@ async function updateReturnRequest(req, res, next) {
   }
 }
 
+async function refundReturnRequest(req, res, next) {
+  try {
+    const data = await adminService.refundAdminReturnRequest(
+      req.params.returnRequestId
+    );
+
+    await writeAuditLog({
+      actorType: 'admin',
+      actorId: req.user.id,
+      actionKey: 'returns.refund',
+      resourceType: 'return_request',
+      resourceId: data.returnRequestId,
+      req,
+      meta: data,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Return request refunded successfully.',
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   listProducts,
   getProductById,
@@ -375,4 +402,5 @@ module.exports = {
   updateStorefrontSettings,
   listReturnRequests,
   updateReturnRequest,
+  refundReturnRequest,
 };

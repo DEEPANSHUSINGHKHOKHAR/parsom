@@ -8,6 +8,31 @@ const currency = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value));
 
+const formatMonthLabel = (value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const [year, month] = value.split('-');
+
+  if (!year || !month) {
+    return value;
+  }
+
+  const date = new Date(Number(year), Number(month) - 1, 1);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    month: 'short',
+    year: '2-digit',
+  })
+    .format(date)
+    .replace(' ', '-');
+};
+
 export default function DashboardPage() {
   const [state, setState] = useState({
     loading: true,
@@ -135,7 +160,7 @@ export default function DashboardPage() {
                   <div key={item.monthLabel} className="space-y-2">
                     <div className="flex items-center justify-between gap-4 text-sm">
                       <span className="font-medium text-[#171412]">
-                        {item.monthLabel}
+                        {formatMonthLabel(item.monthLabel)}
                       </span>
                       <span className="text-[#756c63]">
                         {currency(item.revenue)}
@@ -266,6 +291,18 @@ export default function DashboardPage() {
                       <p className="mt-1 text-sm text-[#756c63]">
                         {item.orderUsageCount} used / {limitText}
                       </p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs uppercase tracking-[0.12em]">
+                        {item.isHidden ? (
+                          <span className="rounded-full border border-[#171412]/10 px-3 py-1 text-[#574f48]">
+                            Hidden
+                          </span>
+                        ) : null}
+                        {item.unlocksCod ? (
+                          <span className="rounded-full border border-[#8f3d2f]/20 bg-[#8f3d2f]/10 px-3 py-1 text-[#8f3d2f]">
+                            COD {item.codOrdersCount}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-[#756c63]">Discount Given</p>

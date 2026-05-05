@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import MediaPlaceholder from '../../../components/ui/media-placeholder';
 
 const inferType = (mediaItem) => {
@@ -10,8 +10,15 @@ const inferType = (mediaItem) => {
 };
 
 export default function ProductGallery({ media = [] }) {
-  const galleryItems = useMemo(() => media.filter(Boolean), [media]);
+  const galleryItems = useMemo(
+    () => media.filter((item) => Boolean(item?.url)),
+    [media]
+  );
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [galleryItems.length]);
 
   const activeItem = galleryItems[activeIndex];
 
@@ -57,7 +64,7 @@ export default function ProductGallery({ media = [] }) {
         </div>
 
         <div className="overflow-hidden bg-[#f6f3ee]">
-          <div className="relative flex h-[calc(100vh-13rem)] min-h-[650px] items-center justify-center border border-[#171412]/10 bg-[#f6f3ee]">
+          <div className="relative flex min-h-[520px] items-center justify-center border border-[#171412]/10 bg-[#f6f3ee] xl:min-h-[640px]">
             {inferType(activeItem) === 'video' ? (
               <video
                 src={activeItem.url}

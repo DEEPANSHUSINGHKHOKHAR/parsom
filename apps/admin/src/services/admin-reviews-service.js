@@ -21,6 +21,16 @@ export async function updateAdminReviewReply(reviewId, payload) {
   return data?.data || {};
 }
 
+export async function createAdminWebsiteReview(payload) {
+  const { data } = await apiClient.post('/admin/reviews', payload);
+  return data?.data || {};
+}
+
+export async function updateAdminWebsiteReview(reviewId, payload) {
+  const { data } = await apiClient.patch(`/admin/reviews/${reviewId}`, payload);
+  return data?.data || {};
+}
+
 export async function deleteAdminReview(reviewId) {
   const { data } = await apiClient.delete(`/admin/reviews/${reviewId}`);
   return data?.data || {};

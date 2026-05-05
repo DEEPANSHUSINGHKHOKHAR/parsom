@@ -1,13 +1,13 @@
-# Parsom Product Requirements Document
+# Parsom Attire Product Requirements Document
 
 ## Document Info
-- Product: Parsom
+- Product: Parsom Attire
 - Date: 2026-05-05
 - Status: Draft
 - Scope: `apps/web`, `apps/admin`, and `apps/api`
 
 ## Product Summary
-Parsom is a fashion commerce platform with three connected surfaces:
+Parsom Attire is a fashion commerce platform with three connected surfaces:
 - A customer-facing storefront for browsing collections, ordering products, managing accounts, and requesting stitched clothing.
 - An admin panel for catalog, order, coupon, review, contact, storefront, and wishlist operations.
 - A backend API that powers commerce flows, customer accounts, payments, media handling, and admin workflows.
@@ -15,7 +15,7 @@ Parsom is a fashion commerce platform with three connected surfaces:
 The current product appears designed for a boutique apparel brand that needs both direct online selling and assisted order operations.
 
 ## Problem Statement
-Small fashion brands often need to manage catalog presentation, direct orders, customer inquiries, reviews, size guidance, return flows, and back-office fulfillment without a heavyweight enterprise stack. Parsom solves this by combining a branded storefront with an operational admin console and a backend tailored to fashion commerce workflows.
+Small fashion brands often need to manage catalog presentation, direct orders, customer inquiries, reviews, size guidance, return flows, and back-office fulfillment without a heavyweight enterprise stack. Parsom Attire solves this by combining a branded storefront with an operational admin console and a backend tailored to fashion commerce workflows.
 
 ## Goals
 - Let customers discover and purchase products with a smooth mobile-friendly storefront.

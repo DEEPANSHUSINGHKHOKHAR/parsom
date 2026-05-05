@@ -27,6 +27,7 @@ router.post(
     body('agreements.termsAccepted').isBoolean(),
     body('agreements.returnPolicyAccepted').isBoolean(),
     body('couponCode').optional({ values: 'falsy' }).trim().isLength({ max: 80 }),
+    body('paymentMethod').optional().isIn(['razorpay', 'cod']),
     body('items').isArray({ min: 1 }),
     body('items.*.productId').isInt({ min: 1 }),
     body('items.*.size').trim().notEmpty().isLength({ max: 20 }),

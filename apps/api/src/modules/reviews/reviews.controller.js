@@ -42,6 +42,20 @@ async function getEligibleReviewItems(req, res, next) {
   }
 }
 
+async function getPublishedWebsiteReviews(req, res, next) {
+  try {
+    const data = await reviewsService.getPublishedWebsiteReviews();
+
+    res.status(200).json({
+      success: true,
+      message: 'Website reviews fetched successfully.',
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function updateMyReview(req, res, next) {
   try {
     const data = await reviewsService.updateMyReview(
@@ -78,6 +92,7 @@ module.exports = {
   createReview,
   getMyReviews,
   getEligibleReviewItems,
+  getPublishedWebsiteReviews,
   updateMyReview,
   deleteMyReview,
 };

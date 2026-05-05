@@ -17,6 +17,7 @@ export default function CheckoutSummary({
   subtotal,
   discount,
   total,
+  couponApplied,
 }) {
   return (
     <div className="space-y-6 rounded-[8px] border border-[#ded5ca] bg-[#fffaf4] p-6 shadow-[0_16px_34px_rgba(23,20,18,0.06)]">
@@ -76,6 +77,12 @@ export default function CheckoutSummary({
           </button>
         </div>
         {couponError ? <p className="text-sm text-[#a33a2a]">{couponError}</p> : null}
+        {couponApplied?.code ? (
+          <p className="text-sm text-[#5f6f52]">
+            Coupon {couponApplied.code} applied
+            {couponApplied.unlocksCod ? ' and COD is now available.' : '.'}
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-3 rounded-[8px] border border-[#ded5ca] bg-[#f6f3ee] p-4">

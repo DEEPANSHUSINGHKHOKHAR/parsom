@@ -1,5 +1,6 @@
 const { query } = require('../../config/db');
 const AppError = require('../../utils/app-error');
+const { ensureStoreSchema } = require('../../utils/store-schema');
 
 function toDbDiscountType(value) {
   if (value === 'percent') return 'percentage';
@@ -14,6 +15,8 @@ function toClientDiscountType(value) {
 }
 
 async function listCoupons() {
+  await ensureStoreSchema();
+
   const rows = await query(
     `
       SELECT
@@ -29,6 +32,8 @@ async function listCoupons() {
         starts_at AS startsAt,
         ends_at AS endsAt,
         is_active AS isActive,
+        is_hidden AS isHidden,
+        unlocks_cod AS unlocksCod,
         created_at AS createdAt,
         (
           SELECT COUNT(*)
@@ -42,7 +47,14 @@ async function listCoupons() {
           WHERE o.coupon_id = coupons.id
             AND o.deleted_at IS NULL
             AND o.order_status <> 'cancelled'
-        ) AS totalDiscountGiven
+        ) AS totalDiscountGiven,
+        (
+          SELECT COUNT(*)
+          FROM orders o
+          WHERE o.coupon_id = coupons.id
+            AND o.payment_method = 'cod'
+            AND o.deleted_at IS NULL
+        ) AS codOrdersCount
       FROM coupons
       WHERE deleted_at IS NULL
       ORDER BY created_at DESC
@@ -65,10 +77,15 @@ async function listCoupons() {
     orderUsageCount: Number(row.orderUsageCount || 0),
     totalDiscountGiven: Number(row.totalDiscountGiven || 0),
     isActive: Boolean(row.isActive),
+    isHidden: Boolean(row.isHidden),
+    unlocksCod: Boolean(row.unlocksCod),
+    codOrdersCount: Number(row.codOrdersCount || 0),
   }));
 }
 
 async function listDeletedCoupons() {
+  await ensureStoreSchema();
+
   const rows = await query(
     `
       SELECT
@@ -79,6 +96,8 @@ async function listDeletedCoupons() {
         c.usage_limit AS usageLimit,
         c.usage_per_user AS perUserLimit,
         c.used_count AS totalUsed,
+        c.is_hidden AS isHidden,
+        c.unlocks_cod AS unlocksCod,
         c.deleted_at AS deletedAt,
         COUNT(o.id) AS orderUsageCount,
         COALESCE(SUM(CASE WHEN o.order_status <> 'cancelled' THEN o.discount_amount ELSE 0 END), 0) AS totalDiscountGiven
@@ -102,11 +121,15 @@ async function listDeletedCoupons() {
     totalUsed: Number(row.totalUsed || 0),
     orderUsageCount: Number(row.orderUsageCount || 0),
     totalDiscountGiven: Number(row.totalDiscountGiven || 0),
+    isHidden: Boolean(row.isHidden),
+    unlocksCod: Boolean(row.unlocksCod),
     deletedAt: row.deletedAt,
   }));
 }
 
 async function createCoupon(payload) {
+  await ensureStoreSchema();
+
   const code = payload.code.toUpperCase();
 
   const existing = await query(
@@ -137,9 +160,11 @@ async function createCoupon(payload) {
         usage_per_user,
         starts_at,
         ends_at,
-        is_active
+        is_active,
+        is_hidden,
+        unlocks_cod
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       code,
@@ -153,6 +178,8 @@ async function createCoupon(payload) {
       payload.startsAt ?? null,
       payload.endsAt ?? null,
       payload.isActive === false ? 0 : 1,
+      payload.isHidden ? 1 : 0,
+      payload.unlocksCod ? 1 : 0,
     ]
   );
 
@@ -160,6 +187,8 @@ async function createCoupon(payload) {
 }
 
 async function updateCoupon(couponId, payload) {
+  await ensureStoreSchema();
+
   const existingRows = await query(
     `
       SELECT *
@@ -211,6 +240,8 @@ async function updateCoupon(couponId, payload) {
           starts_at = ?,
           ends_at = ?,
           is_active = ?,
+          is_hidden = ?,
+          unlocks_cod = ?,
           updated_at = NOW()
       WHERE id = ?
     `,
@@ -234,6 +265,8 @@ async function updateCoupon(couponId, payload) {
       payload.startsAt !== undefined ? payload.startsAt : existing.starts_at,
       payload.endsAt !== undefined ? payload.endsAt : existing.ends_at,
       payload.isActive !== undefined ? (payload.isActive ? 1 : 0) : existing.is_active,
+      payload.isHidden !== undefined ? (payload.isHidden ? 1 : 0) : existing.is_hidden,
+      payload.unlocksCod !== undefined ? (payload.unlocksCod ? 1 : 0) : existing.unlocks_cod,
       couponId,
     ]
   );
@@ -242,6 +275,8 @@ async function updateCoupon(couponId, payload) {
 }
 
 async function deleteCoupon(couponId) {
+  await ensureStoreSchema();
+
   const existingRows = await query(
     `
       SELECT id
@@ -271,6 +306,8 @@ async function deleteCoupon(couponId) {
 }
 
 async function restoreCoupon(couponId) {
+  await ensureStoreSchema();
+
   const existingRows = await query(
     `
       SELECT id
@@ -301,6 +338,8 @@ async function restoreCoupon(couponId) {
 }
 
 async function permanentlyDeleteCoupon(couponId) {
+  await ensureStoreSchema();
+
   const usageRows = await query(
     `
       SELECT COUNT(*) AS total

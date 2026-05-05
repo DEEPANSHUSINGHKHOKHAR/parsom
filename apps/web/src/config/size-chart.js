@@ -37,7 +37,7 @@ export const measurementNotes = [
 
 export const fitTips = [
   'All measurements are in inches and refer to finished garment measurements unless noted.',
-  'Keep 1-2 inches of ease around bust and hip if you prefer a relaxed streetwear fit.',
+  'Keep 1-2 inches of ease around bust and hip if you prefer a relaxed luxury wordrobe fit.',
   'If you are between two sizes, choose the larger size for kurtas and co-ord sets.',
   'Compare these numbers with a similar garment that fits you well for the most accurate choice.',
   'Allow a slight variation because fabric, wash, and manual measurement can change the final fit.',

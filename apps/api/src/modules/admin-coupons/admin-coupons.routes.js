@@ -27,6 +27,8 @@ router.post(
     body('startsAt').optional({ values: 'falsy' }).isISO8601(),
     body('endsAt').optional({ values: 'falsy' }).isISO8601(),
     body('isActive').optional().isBoolean(),
+    body('isHidden').optional().isBoolean(),
+    body('unlocksCod').optional().isBoolean(),
   ],
   validateRequest,
   controller.createCoupon
@@ -47,6 +49,8 @@ router.patch(
     body('startsAt').optional({ values: 'falsy' }).isISO8601(),
     body('endsAt').optional({ values: 'falsy' }).isISO8601(),
     body('isActive').optional().isBoolean(),
+    body('isHidden').optional().isBoolean(),
+    body('unlocksCod').optional().isBoolean(),
   ],
   validateRequest,
   controller.updateCoupon

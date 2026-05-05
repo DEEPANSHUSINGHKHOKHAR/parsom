@@ -47,6 +47,55 @@ async function updateReviewPublishState(req, res, next) {
   }
 }
 
+async function createWebsiteReview(req, res, next) {
+  try {
+    const data = await reviewsService.createWebsiteReview(req.body);
+
+    await writeAuditLog({
+      actorType: 'admin',
+      actorId: req.user.id,
+      actionKey: 'reviews.create_website',
+      resourceType: 'website_review',
+      resourceId: data.reviewId,
+      req,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Website review created successfully.',
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function updateWebsiteReview(req, res, next) {
+  try {
+    const data = await reviewsService.updateWebsiteReview(
+      req.params.reviewId,
+      req.body
+    );
+
+    await writeAuditLog({
+      actorType: 'admin',
+      actorId: req.user.id,
+      actionKey: 'reviews.update_website',
+      resourceType: 'website_review',
+      resourceId: data.reviewId,
+      req,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Website review updated successfully.',
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function updateReviewReply(req, res, next) {
   try {
     const data = await reviewsService.updateReviewReply(
@@ -98,6 +147,8 @@ async function deleteReview(req, res, next) {
 
 module.exports = {
   listReviews,
+  createWebsiteReview,
+  updateWebsiteReview,
   updateReviewPublishState,
   updateReviewReply,
   deleteReview,

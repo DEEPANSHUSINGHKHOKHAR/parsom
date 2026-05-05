@@ -17,6 +17,8 @@ const initialForm = {
   startsAt: '',
   endsAt: '',
   isActive: true,
+  isHidden: false,
+  unlocksCod: false,
 };
 
 export default function CouponsPage() {
@@ -34,8 +36,9 @@ export default function CouponsPage() {
       used: summary.used + Number(item.orderUsageCount || item.totalUsed || 0),
       discountGiven: summary.discountGiven + Number(item.totalDiscountGiven || 0),
       limited: summary.limited + (item.usageLimit ? 1 : 0),
+      codEnabled: summary.codEnabled + (item.unlocksCod ? 1 : 0),
     }),
-    { used: 0, discountGiven: 0, limited: 0 }
+    { used: 0, discountGiven: 0, limited: 0, codEnabled: 0 }
   );
 
   const loadCoupons = async () => {
@@ -78,6 +81,8 @@ export default function CouponsPage() {
     startsAt: form.startsAt || undefined,
     endsAt: form.endsAt || undefined,
     isActive: Boolean(form.isActive),
+    isHidden: Boolean(form.isHidden),
+    unlocksCod: Boolean(form.unlocksCod),
   });
 
   const handleSubmit = async (event) => {
@@ -120,6 +125,8 @@ export default function CouponsPage() {
       startsAt: item.startsAt ? String(item.startsAt).slice(0, 16) : '',
       endsAt: item.endsAt ? String(item.endsAt).slice(0, 16) : '',
       isActive: item.isActive,
+      isHidden: item.isHidden,
+      unlocksCod: item.unlocksCod,
     });
   };
 
@@ -149,7 +156,7 @@ export default function CouponsPage() {
         </h2>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-5">
           <p className="text-xs uppercase text-[#756c63]">Coupon Uses</p>
           <p className="mt-2 text-3xl font-semibold text-[#171412]">
@@ -170,6 +177,12 @@ export default function CouponsPage() {
           <p className="text-xs uppercase text-[#756c63]">Limited Coupons</p>
           <p className="mt-2 text-3xl font-semibold text-[#171412]">
             {usageSummary.limited}
+          </p>
+        </div>
+        <div className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-5">
+          <p className="text-xs uppercase text-[#756c63]">COD Unlock Coupons</p>
+          <p className="mt-2 text-3xl font-semibold text-[#171412]">
+            {usageSummary.codEnabled}
           </p>
         </div>
       </div>
@@ -270,6 +283,26 @@ export default function CouponsPage() {
           />
           Active
         </label>
+        <label className="flex items-center gap-2 text-sm text-[#574f48]">
+          <input
+            type="checkbox"
+            checked={form.isHidden}
+            onChange={(event) =>
+              setForm((prev) => ({ ...prev, isHidden: event.target.checked }))
+            }
+          />
+          Hidden coupon
+        </label>
+        <label className="flex items-center gap-2 text-sm text-[#574f48]">
+          <input
+            type="checkbox"
+            checked={form.unlocksCod}
+            onChange={(event) =>
+              setForm((prev) => ({ ...prev, unlocksCod: event.target.checked }))
+            }
+          />
+          Unlock COD
+        </label>
 
         <div className="md:col-span-3 flex gap-3">
           <button
@@ -318,10 +351,27 @@ export default function CouponsPage() {
                 <p className="mt-2 text-sm text-[#756c63]">
                   {item.discountType} / {item.discountValue}
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.12em]">
+                  {item.isHidden ? (
+                    <span className="rounded-full border border-[#171412]/10 px-3 py-1 text-[#574f48]">
+                      Hidden
+                    </span>
+                  ) : null}
+                  {item.unlocksCod ? (
+                    <span className="rounded-full border border-[#8f3d2f]/20 bg-[#8f3d2f]/10 px-3 py-1 text-[#8f3d2f]">
+                      Unlocks COD
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-2 text-sm text-[#756c63]">
                   Used {item.orderUsageCount ?? item.totalUsed ?? 0}
                   {item.usageLimit ? ` of ${item.usageLimit}` : ' / unlimited'} times
                 </p>
+                {item.unlocksCod ? (
+                  <p className="mt-2 text-sm text-[#756c63]">
+                    COD orders created: {item.codOrdersCount || 0}
+                  </p>
+                ) : null}
                 {item.usageLimit ? (
                   <div className="mt-3 h-2 w-64 max-w-full overflow-hidden rounded-full bg-[#e5ded5]">
                     <div

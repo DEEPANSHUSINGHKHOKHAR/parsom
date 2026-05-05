@@ -223,7 +223,7 @@ export default function LoginPromptModal({ open, onClose }) {
 
               <div className="text-center">
                 <p className="font-display text-xl leading-none text-[#c0195d]">
-                  Parsom
+                  Parsom Attire
                 </p>
                 <p className="mt-1 text-[10px] text-[#7f7f7f]">Fashion starts here</p>
               </div>

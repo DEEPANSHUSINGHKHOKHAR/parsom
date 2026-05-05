@@ -10,10 +10,23 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value));
 
+const formatDateTime = (value) => {
+  if (!value) return 'Not available';
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+};
+
 export default function OrdersPage() {
   const [filters, setFilters] = useState({
     search: '',
     status: '',
+    paymentMethod: '',
   });
 
   const [state, setState] = useState({
@@ -68,7 +81,7 @@ export default function OrdersPage() {
 
       <form
         onSubmit={handleSearch}
-        className="grid gap-4 rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-6 backdrop-blur-xl md:grid-cols-3"
+        className="grid gap-4 rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-6 backdrop-blur-xl md:grid-cols-4"
       >
         <input
           type="text"
@@ -87,12 +100,24 @@ export default function OrdersPage() {
           }
           className="rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] px-4 py-3 text-sm text-[#171412] outline-none"
         >
-          <option value="">All Status</option>
+          <option value="">All Delivery Status</option>
           <option value="pending">Pending</option>
           <option value="confirmed">Confirmed</option>
           <option value="shipped">Shipped</option>
           <option value="delivered">Delivered</option>
           <option value="cancelled">Cancelled</option>
+        </select>
+
+        <select
+          value={filters.paymentMethod}
+          onChange={(event) =>
+            setFilters((prev) => ({ ...prev, paymentMethod: event.target.value }))
+          }
+          className="rounded-[8px] border border-[#171412]/10 bg-[#f6f3ee] px-4 py-3 text-sm text-[#171412] outline-none"
+        >
+          <option value="">All Payment Methods</option>
+          <option value="razorpay">Razorpay</option>
+          <option value="cod">COD</option>
         </select>
 
         <button
@@ -116,8 +141,9 @@ export default function OrdersPage() {
               <tr>
                 <th className="px-5 py-4">Order</th>
                 <th className="px-5 py-4">Customer</th>
+                <th className="px-5 py-4">Ordered On</th>
                 <th className="px-5 py-4">Products</th>
-                <th className="px-5 py-4">Status</th>
+                <th className="px-5 py-4">Delivery Status</th>
                 <th className="px-5 py-4">Items</th>
                 <th className="px-5 py-4">Total</th>
                 <th className="px-5 py-4">Actions</th>
@@ -126,13 +152,13 @@ export default function OrdersPage() {
             <tbody>
               {state.loading ? (
                 <tr>
-                  <td className="px-5 py-5 text-[#756c63]" colSpan={7}>
+                  <td className="px-5 py-5 text-[#756c63]" colSpan={8}>
                     Loading orders...
                   </td>
                 </tr>
               ) : state.items.length === 0 ? (
                 <tr>
-                  <td className="px-5 py-5 text-[#756c63]" colSpan={7}>
+                  <td className="px-5 py-5 text-[#756c63]" colSpan={8}>
                     No orders found.
                   </td>
                 </tr>
@@ -140,7 +166,16 @@ export default function OrdersPage() {
                 state.items.map((item) => (
                   <tr key={item.orderNumber} className="border-b border-[#171412]/5">
                     <td className="px-5 py-4 text-[#171412]">{item.orderNumber}</td>
-                    <td className="px-5 py-4 text-[#756c63]">{item.customerName}</td>
+                    <td className="px-5 py-4 text-[#756c63]">
+                      <p>{item.customerName}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#8f3d2f]">
+                        {item.paymentMethod}
+                        {item.couponCode ? ` / ${item.couponCode}` : ''}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 text-[#756c63]">
+                      {formatDateTime(item.placedAt)}
+                    </td>
                     <td className="px-5 py-4">
                       <div className="flex -space-x-3">
                         {(item.itemMedia || []).slice(0, 4).map((media, index) => (

@@ -23,7 +23,7 @@ function getWhatsAppHref(item, form = {}) {
   const status = form.status || item.status;
   const adminMessage = (form.adminNotes ?? item.adminNotes ?? '').trim();
   const messageParts = [
-    `Hi ${item.fullName || 'there'}, this is Parsom.`,
+    `Hi ${item.fullName || 'there'}, this is Parsom Attire.`,
     notifyStatusMessages[status] || `Your notify request status is now ${status}.`,
     `Product: ${item.product?.name || 'Requested item'}${item.size ? `, Size: ${item.size}` : ''}.`,
   ];

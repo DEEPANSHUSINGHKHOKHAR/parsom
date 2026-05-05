@@ -83,6 +83,7 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [couponState, setCouponState] = useState({ loading: false, error: '', applied: null });
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('razorpay');
   const [status, setStatus] = useState({ loading: false, error: '' });
   const [agreements, setAgreements] = useState({
     termsAccepted: false,
@@ -100,9 +101,16 @@ export default function CheckoutPage() {
 
   const discount = couponState.applied?.discountAmount || 0;
   const total = couponState.applied?.totalAfterDiscount ?? subtotal;
+  const codUnlocked = Boolean(couponState.applied?.unlocksCod);
   const selectedSavedAddress = savedAddresses.find(
     (item) => String(item.id) === String(selectedAddressId)
   );
+
+  useEffect(() => {
+    if (!codUnlocked && selectedPaymentMethod === 'cod') {
+      setSelectedPaymentMethod('razorpay');
+    }
+  }, [codUnlocked, selectedPaymentMethod]);
 
   useEffect(() => {
     if (!actor) return;
@@ -182,12 +190,21 @@ export default function CheckoutPage() {
     try {
       const result = await validateCoupon({ code: couponCode, subtotal });
       setCouponState({ loading: false, error: '', applied: result });
+      sessionStorage.setItem(
+        'parsom-checkout-coupon',
+        JSON.stringify({
+          ...result,
+          subtotal,
+        })
+      );
     } catch (error) {
       setCouponState({
         loading: false,
         error: error?.response?.data?.message || 'Invalid coupon.',
         applied: null,
       });
+      sessionStorage.removeItem('parsom-checkout-coupon');
+      setSelectedPaymentMethod('razorpay');
     }
   };
 
@@ -202,11 +219,10 @@ export default function CheckoutPage() {
 
     setStatus({ loading: true, error: '' });
     try {
-      await loadRazorpayScript();
-
       const orderResponse = await createOrder({
         customer: formValues,
         couponCode: couponCode || undefined,
+        paymentMethod: selectedPaymentMethod,
         agreements,
         items: cartItems.map((item) => ({
           productId: item.productId,
@@ -215,67 +231,73 @@ export default function CheckoutPage() {
         })),
       });
 
-      const razorpay = orderResponse.razorpay;
+      let paymentResult = null;
 
-      if (!razorpay?.keyId || !razorpay?.orderId) {
-        throw new Error('Payment could not be initialized.');
+      if (selectedPaymentMethod === 'razorpay') {
+        await loadRazorpayScript();
+
+        const razorpay = orderResponse.razorpay;
+
+        if (!razorpay?.keyId || !razorpay?.orderId) {
+          throw new Error('Payment could not be initialized.');
+        }
+
+        paymentResult = await new Promise((resolve, reject) => {
+          const checkout = new window.Razorpay({
+            key: razorpay.keyId,
+            amount: razorpay.amount,
+            currency: razorpay.currency || 'INR',
+            name: siteConfig.brandName,
+            description: `Order ${orderResponse.orderNumber}`,
+            image: getRazorpayImageUrl(),
+            order_id: razorpay.orderId,
+            prefill: {
+              name: `${formValues.firstName} ${formValues.lastName}`.trim(),
+              email: formValues.email,
+              contact: formValues.phone,
+            },
+            notes: {
+              orderNumber: orderResponse.orderNumber,
+            },
+            theme: {
+              color: '#8f3d2f',
+            },
+            handler: async (response) => {
+              try {
+                const verifiedPayment = await verifyOrderPayment({
+                  orderNumber: orderResponse.orderNumber,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                });
+                resolve(verifiedPayment);
+              } catch (error) {
+                reject(error);
+              }
+            },
+            modal: {
+              ondismiss: () => reject(new Error('Payment was cancelled.')),
+            },
+            retry: {
+              enabled: true,
+              max_count: 3,
+            },
+          });
+
+          checkout.on('payment.failed', (response) => {
+            reject(new Error(response?.error?.description || 'Payment failed.'));
+          });
+
+          checkout.open();
+        });
       }
-
-      const paymentResult = await new Promise((resolve, reject) => {
-        const checkout = new window.Razorpay({
-          key: razorpay.keyId,
-          amount: razorpay.amount,
-          currency: razorpay.currency || 'INR',
-          name: siteConfig.brandName,
-          description: `Order ${orderResponse.orderNumber}`,
-          image: getRazorpayImageUrl(),
-          order_id: razorpay.orderId,
-          prefill: {
-            name: `${formValues.firstName} ${formValues.lastName}`.trim(),
-            email: formValues.email,
-            contact: formValues.phone,
-          },
-          notes: {
-            orderNumber: orderResponse.orderNumber,
-          },
-          theme: {
-            color: '#8f3d2f',
-          },
-          handler: async (response) => {
-            try {
-              const verifiedPayment = await verifyOrderPayment({
-                orderNumber: orderResponse.orderNumber,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              });
-              resolve(verifiedPayment);
-            } catch (error) {
-              reject(error);
-            }
-          },
-          modal: {
-            ondismiss: () => reject(new Error('Payment was cancelled.')),
-          },
-          retry: {
-            enabled: true,
-            max_count: 3,
-          },
-        });
-
-        checkout.on('payment.failed', (response) => {
-          reject(new Error(response?.error?.description || 'Payment failed.'));
-        });
-
-        checkout.open();
-      });
 
       sessionStorage.setItem(
         'parsom-last-order',
         JSON.stringify({
           order: {
             ...orderResponse,
-            ...paymentResult,
+            ...(paymentResult || {}),
           },
           customer: formValues,
           items: cartItems,
@@ -403,7 +425,51 @@ export default function CheckoutPage() {
                 subtotal={subtotal}
                 discount={discount}
                 total={total}
+                couponApplied={couponState.applied}
               /> 
+
+              <div className="rounded-[8px] border border-[#ded5ca] bg-[#fffaf4] p-4 text-sm text-[#574f48]">
+                <p className="text-label text-[#8f3d2f]">Payment Method</p>
+                <div className="mt-4 space-y-3">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-[8px] border border-[#ded5ca] bg-[#f6f3ee] p-4">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="razorpay"
+                      checked={selectedPaymentMethod === 'razorpay'}
+                      onChange={() => setSelectedPaymentMethod('razorpay')}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block font-semibold text-[#171412]">Pay Online</span>
+                      <span className="block text-[#756c63]">
+                        Secure payment with Razorpay.
+                      </span>
+                    </span>
+                  </label>
+
+                  {codUnlocked ? (
+                    <label className="flex cursor-pointer items-start gap-3 rounded-[8px] border border-[#d8c7a9] bg-[#fbf3e6] p-4">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={selectedPaymentMethod === 'cod'}
+                        onChange={() => setSelectedPaymentMethod('cod')}
+                        className="mt-1"
+                      />
+                      <span>
+                        <span className="block font-semibold text-[#171412]">
+                          Cash on Delivery
+                        </span>
+                        <span className="block text-[#756c63]">
+                          Enabled by your special coupon for legacy order handling.
+                        </span>
+                      </span>
+                    </label>
+                  ) : null}
+                </div>
+              </div>
 
               <div className="rounded-[8px] border border-[#ded5ca] bg-[#fffaf4] p-4 text-sm text-[#574f48]">
                 <label className="flex items-start gap-3">
@@ -451,7 +517,13 @@ export default function CheckoutPage() {
                 className="hidden w-full justify-center bg-[#171412] text-[#fffaf4] hover:bg-[#8f3d2f] lg:inline-flex"
                 disabled={status.loading || !agreements.termsAccepted || !agreements.returnPolicyAccepted}
               >
-                {status.loading ? 'Opening Payment...' : 'Pay Securely'}
+                {status.loading
+                  ? selectedPaymentMethod === 'cod'
+                    ? 'Placing Order...'
+                    : 'Opening Payment...'
+                  : selectedPaymentMethod === 'cod'
+                    ? 'Place COD Order'
+                    : 'Pay Securely'}
               </Button>
             </div>
           </div>
@@ -473,7 +545,13 @@ export default function CheckoutPage() {
               disabled={status.loading || !agreements.termsAccepted || !agreements.returnPolicyAccepted}
               className="min-h-12 rounded-full bg-[#171412] px-5 text-sm font-semibold uppercase tracking-[0.12em] text-[#fffaf4] transition hover:bg-[#8f3d2f] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {status.loading ? 'Opening...' : 'Pay Securely'}
+              {status.loading
+                ? selectedPaymentMethod === 'cod'
+                  ? 'Placing...'
+                  : 'Opening...'
+                : selectedPaymentMethod === 'cod'
+                  ? 'Place COD Order'
+                  : 'Pay Securely'}
             </button>
           </div>
         </div>

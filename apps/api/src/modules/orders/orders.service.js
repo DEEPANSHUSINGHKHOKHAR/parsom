@@ -149,6 +149,8 @@ async function validateCoupon(connection, couponCode, subtotal, userId) {
     return {
       coupon: null,
       discountAmount: 0,
+      unlocksCod: false,
+      isHidden: false,
     };
   }
 
@@ -219,6 +221,8 @@ async function validateCoupon(connection, couponCode, subtotal, userId) {
   return {
     coupon,
     discountAmount,
+    unlocksCod: Boolean(coupon.unlocks_cod),
+    isHidden: Boolean(coupon.is_hidden),
   };
 }
 
@@ -344,20 +348,28 @@ async function createOrder(payload, actor) {
       });
     }
 
-    const { coupon, discountAmount } = await validateCoupon(
+    const requestedPaymentMethod = payload.paymentMethod === 'cod' ? 'cod' : 'razorpay';
+    const { coupon, discountAmount, unlocksCod, isHidden } = await validateCoupon(
       connection,
       payload.couponCode || null,
       subtotal,
       userId
     );
 
-    const totalAmount = Number(subtotal) - Number(discountAmount);
-    await saveCheckoutAddress(connection, userId, payload.customer);
+    if (requestedPaymentMethod === 'cod' && !unlocksCod) {
+      throw new AppError(422, 'This coupon does not allow Cash on Delivery.');
+    }
 
-    const razorpayOrder = await createRazorpayOrder({
-      orderNumber,
-      amount: totalAmount,
-    });
+    const totalAmount = Number(subtotal) - Number(discountAmount);
+    const razorpayOrder =
+      requestedPaymentMethod === 'razorpay'
+        ? await createRazorpayOrder({
+            orderNumber,
+            amount: totalAmount,
+          })
+        : null;
+
+    await saveCheckoutAddress(connection, userId, payload.customer);
     const customerName = `${payload.customer.firstName} ${payload.customer.lastName}`.trim();
     const addressSnapshot = {
       firstName: payload.customer.firstName,
@@ -386,6 +398,9 @@ async function createOrder(payload, actor) {
           discount_amount,
           shipping_amount,
           total_amount,
+          coupon_code,
+          cod_unlocked_by_coupon,
+          hidden_coupon_applied,
           payment_method,
           payment_status,
           razorpay_order_id,
@@ -394,7 +409,7 @@ async function createOrder(payload, actor) {
           terms_accepted_at,
           return_policy_accepted_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'razorpay', 'pending', ?, 'pending', ?, NOW(), NOW())
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW())
       `,
       [
         orderNumber,
@@ -406,8 +421,14 @@ async function createOrder(payload, actor) {
         JSON.stringify(addressSnapshot),
         subtotal,
         discountAmount,
+        0,
         totalAmount,
-        razorpayOrder.id,
+        coupon ? coupon.code : null,
+        unlocksCod ? 1 : 0,
+        isHidden ? 1 : 0,
+        requestedPaymentMethod,
+        'pending',
+        razorpayOrder ? razorpayOrder.id : null,
         payload.customer.notes || null,
       ]
     );
@@ -496,7 +517,7 @@ async function createOrder(payload, actor) {
       console.error('Failed to enqueue order sheets job:', error.message);
     }
 
-    return {
+    const response = {
       orderId,
       orderNumber,
       subtotal: Number(subtotal),
@@ -504,7 +525,18 @@ async function createOrder(payload, actor) {
       totalAmount: Number(totalAmount),
       status: 'pending',
       paymentStatus: 'pending',
-      paymentMethod: 'razorpay',
+      paymentMethod: requestedPaymentMethod,
+      couponCode: coupon ? coupon.code : null,
+      codUnlockedByCoupon: unlocksCod,
+      hiddenCouponApplied: isHidden,
+    };
+
+    if (requestedPaymentMethod === 'cod') {
+      return response;
+    }
+
+    return {
+      ...response,
       razorpay: {
         keyId: env.RAZORPAY_KEY_ID,
         orderId: razorpayOrder.id,
@@ -591,6 +623,9 @@ async function getMyOrders(actor) {
         order_number AS orderNumber,
         order_status AS status,
         payment_method AS paymentMethod,
+        coupon_code AS couponCode,
+        cod_unlocked_by_coupon AS codUnlockedByCoupon,
+        hidden_coupon_applied AS hiddenCouponApplied,
         payment_status AS paymentStatus,
         razorpay_order_id AS razorpayOrderId,
         razorpay_payment_id AS razorpayPaymentId,
@@ -696,6 +731,9 @@ async function getMyOrders(actor) {
     orderNumber: row.orderNumber,
     status: row.status,
     paymentMethod: row.paymentMethod,
+    couponCode: row.couponCode,
+    codUnlockedByCoupon: Boolean(row.codUnlockedByCoupon),
+    hiddenCouponApplied: Boolean(row.hiddenCouponApplied),
     paymentStatus: row.paymentStatus,
     razorpayOrderId: row.razorpayOrderId,
     razorpayPaymentId: row.razorpayPaymentId,
@@ -723,6 +761,9 @@ async function getMyOrderByNumber(actor, orderNumber) {
         order_number AS orderNumber,
         order_status AS status,
         payment_method AS paymentMethod,
+        coupon_code AS couponCode,
+        cod_unlocked_by_coupon AS codUnlockedByCoupon,
+        hidden_coupon_applied AS hiddenCouponApplied,
         payment_status AS paymentStatus,
         razorpay_order_id AS razorpayOrderId,
         razorpay_payment_id AS razorpayPaymentId,
@@ -814,6 +855,9 @@ async function getMyOrderByNumber(actor, orderNumber) {
     orderNumber: order.orderNumber,
     status: order.status,
     paymentMethod: order.paymentMethod,
+    couponCode: order.couponCode,
+    codUnlockedByCoupon: Boolean(order.codUnlockedByCoupon),
+    hiddenCouponApplied: Boolean(order.hiddenCouponApplied),
     paymentStatus: order.paymentStatus,
     razorpayOrderId: order.razorpayOrderId,
     razorpayPaymentId: order.razorpayPaymentId,

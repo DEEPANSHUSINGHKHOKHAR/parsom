@@ -2,7 +2,7 @@
   "name": "brand",
   "version": "1.0.0",
   "private": true,
-  "description": "Parsom brand applications",
+  "description": "Parsom Attire brand applications",
   "scripts": {
     "check:api": "npm --prefix apps/api run check",
     "lint:web": "npm --prefix apps/web run lint",

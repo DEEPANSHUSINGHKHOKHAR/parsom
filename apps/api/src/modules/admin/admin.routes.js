@@ -177,6 +177,14 @@ router.patch(
   adminController.updateReturnRequest
 );
 
+router.post(
+  '/return-requests/:returnRequestId/refund',
+  requirePermission('returns.update'),
+  [param('returnRequestId').isInt({ min: 1 })],
+  validateRequest,
+  adminController.refundReturnRequest
+);
+
 router.get(
   '/storefront/settings',
   requirePermission('storefront.read'),

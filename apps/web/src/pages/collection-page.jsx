@@ -7,11 +7,14 @@ import LoadingState from '../components/ui/loading-state';
 import EmptyState from '../components/ui/empty-state';
 import PriceBlock from '../components/ui/price-block';
 import MediaPlaceholder from '../components/ui/media-placeholder';
-import ProductCard, { ProductRating } from '../features/collection/components/product-card';
+import ProductCard from '../features/collection/components/product-card';
 import CollectionFilters from '../features/collection/components/collection-filters';
 import { fetchProducts } from '../services/products-service';
 import { collectionAudiences } from '../config/collection-taxonomy';
 import VelocityBanner from '../components/sections/velocity-banner';
+import Seo from '../components/seo/seo';
+import { absoluteUrl } from '../components/seo/seo-utils';
+import { siteConfig } from '../config/site-config';
 
 const initialFilters = {
   search: '',
@@ -25,7 +28,6 @@ const sortOptions = [
   { value: 'latest', label: 'Recommended' },
   { value: 'price_low_to_high', label: 'Price: Low to High' },
   { value: 'price_high_to_low', label: 'Price: High to Low' },
-  { value: 'average', label: 'Customer Rating' },
 ];
 
 const getFiltersFromSearch = (searchParams) => ({
@@ -83,12 +85,6 @@ function ProductQuickPreview({ product, onClose }) {
               <h3 className="line-clamp-3 text-lg font-semibold leading-6 text-[#171412]">
                 {product.name || 'Product'}
               </h3>
-              <ProductRating
-                rating={product.avgRating}
-                count={product.reviewCount}
-                tone="light"
-                compact
-              />
               <div className="flex flex-wrap items-center gap-1.5 text-[#756c63]">
                 <span className="text-[0.62rem] uppercase tracking-[0.16em]">Size</span>
                 {availableSizes.length ? (
@@ -275,6 +271,58 @@ export default function CollectionPage() {
     [filters.audience, filters.availability, filters.category, state.categories]
   );
 
+  const collectionSeo = useMemo(() => {
+    const activeLabel = activeChips.length ? activeChips.join(', ') : 'Luxury Wardrobe';
+    const hasFilterParams = searchParams.toString() !== '';
+    const title = activeChips.length
+      ? `${activeLabel} Collection | ${siteConfig.brandName}`
+      : 'Shop Luxury Wardrobe Collection | PARSOM ATTIRE';
+    const description = activeChips.length
+      ? `Shop ${activeLabel.toLowerCase()} pieces from PARSOM ATTIRE with refined silhouettes, premium fabrics, and modern wardrobe styling.`
+      : 'Shop the PARSOM ATTIRE luxury wardrobe collection with limited-run women clothing, minimal essentials, premium fabrics, and refined statement pieces.';
+
+    return {
+      title,
+      description,
+      noindex: hasFilterParams,
+      jsonLd:
+        !hasFilterParams && state.items.length
+          ? {
+              '@context': 'https://schema.org',
+              '@type': 'ItemList',
+              name: 'PARSOM ATTIRE Collection',
+              url: absoluteUrl('/collection'),
+              numberOfItems: state.items.length,
+              itemListElement: state.items.slice(0, 24).map((product, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                url: absoluteUrl(`/products/${product.slug}`),
+                item: {
+                  '@type': 'Product',
+                  name: product.name,
+                  image: product.primaryImage ? absoluteUrl(product.primaryImage) : undefined,
+                  description: product.shortDescription,
+                  brand: {
+                    '@type': 'Brand',
+                    name: siteConfig.brandName,
+                  },
+                  offers: {
+                    '@type': 'Offer',
+                    priceCurrency: 'INR',
+                    price: product.discountPrice ?? product.price,
+                    availability:
+                      product.status === 'out_of_stock'
+                        ? 'https://schema.org/OutOfStock'
+                        : 'https://schema.org/InStock',
+                    url: absoluteUrl(`/products/${product.slug}`),
+                  },
+                },
+              })),
+            }
+          : null,
+    };
+  }, [activeChips, searchParams, state.items]);
+
   const handleFilterChange = (field, value) => {
     setFilters((prev) => {
       if (field === 'audience') {
@@ -291,6 +339,13 @@ export default function CollectionPage() {
 
   return (
     <PageShell tone="light">
+      <Seo
+        title={collectionSeo.title}
+        description={collectionSeo.description}
+        path="/collection"
+        noindex={collectionSeo.noindex}
+        jsonLd={collectionSeo.jsonLd}
+      />
       <section className="min-h-screen bg-[#fafbfc] pb-24 md:pb-12">
         <VelocityBanner />
         <div className="mx-auto max-w-[1540px] px-3 py-4 sm:px-4 lg:px-8">

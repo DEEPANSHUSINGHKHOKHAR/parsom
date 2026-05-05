@@ -20,7 +20,7 @@ const sections = [
   {
     title: 'Return And Claim Verification',
     points: [
-      'For damaged, defective, incorrect, or missing product claims, PARSOM ATTIRES may request order details, product photos, delivery proof, and a full unboxing video.',
+      'For damaged, defective, incorrect, or missing product claims, PARSOM ATTIRE may request order details, product photos, delivery proof, and a full unboxing video.',
       'Unboxing videos and photos may be used only to verify the claim, review product condition, prevent false claims, and resolve the customer issue.',
       'If a customer does not provide required proof, the return, exchange, or refund request may be rejected according to our return policy.',
     ],
@@ -29,7 +29,7 @@ const sections = [
     title: 'Data Sharing',
     points: [
       'We may share necessary customer and order information with service providers such as Razorpay for payment processing, shipping partners for delivery, and support or infrastructure tools used to operate the store.',
-      'PARSOM ATTIRES does not sell customer personal data as part of normal business operations.',
+      'PARSOM ATTIRE does not sell customer personal data as part of normal business operations.',
       'Information may be disclosed where required by law, fraud prevention, payment disputes, chargeback review, security protection, or business operations.',
     ],
   },
@@ -37,7 +37,7 @@ const sections = [
     title: 'Payment Privacy',
     points: [
       'Online payments may be processed through Razorpay checkout.',
-      'PARSOM ATTIRES should not store full card details on its own website when payment is handled through the hosted Razorpay payment flow.',
+      'PARSOM ATTIRE should not store full card details on its own website when payment is handled through the hosted Razorpay payment flow.',
       'Payment verification references, order IDs, transaction IDs, refund references, and payment status may be stored with the related order for transaction tracking, refund handling, and support.',
     ],
   },
@@ -53,7 +53,7 @@ const sections = [
     points: [
       'We aim to protect customer information using reasonable technical and operational safeguards.',
       'Customers are responsible for keeping account login details private and must not share passwords or OTPs with anyone.',
-      'If suspicious account activity or payment misuse is detected, PARSOM ATTIRES may restrict access, hold orders, or request verification.',
+      'If suspicious account activity or payment misuse is detected, PARSOM ATTIRE may restrict access, hold orders, or request verification.',
     ],
   },
   {
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
     <LegalPage
       eyebrow="Legal"
       title="Privacy Policy"
-      intro="This policy explains what customer information PARSOM ATTIRES collects, how it is used to operate the online store, and how payment-related data is handled during checkout."
+      intro="This policy explains what customer information PARSOM ATTIRE collects, how it is used to operate the online store, and how payment-related data is handled during checkout."
       sections={sections}
     />
   );

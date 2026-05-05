@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { siteConfig } from '../../config/site-config';
-import { absoluteUrl, cleanText } from './seo-utils';
+import { absoluteUrl, cleanText, stripUndefined } from './seo-utils';
 
 const upsertMeta = (selector, createAttributes, updateAttributes) => {
   let element = document.head.querySelector(selector);
@@ -35,6 +35,20 @@ const upsertLink = (rel, href) => {
   element.setAttribute('href', href);
 };
 
+const upsertLinkWithSelector = (selector, createAttributes, href) => {
+  let element = document.head.querySelector(selector);
+
+  if (!element) {
+    element = document.createElement('link');
+    Object.entries(createAttributes).forEach(([key, value]) => {
+      element.setAttribute(key, value);
+    });
+    document.head.appendChild(element);
+  }
+
+  element.setAttribute('href', href);
+};
+
 const upsertJsonLd = (id, payload) => {
   let element = document.getElementById(id);
 
@@ -50,14 +64,16 @@ const upsertJsonLd = (id, payload) => {
     document.head.appendChild(element);
   }
 
-  element.textContent = JSON.stringify(payload);
+  element.textContent = JSON.stringify(stripUndefined(payload));
 };
 
 function Seo({
   title,
   description,
+  keywords,
   path,
   image,
+  imageAlt,
   type = 'website',
   noindex = false,
   jsonLd,
@@ -71,23 +87,28 @@ function Seo({
     const resolvedDescription = cleanText(
       description || siteConfig.defaultSeoDescription
     );
+    const resolvedKeywords = cleanText(keywords || siteConfig.defaultSeoKeywords);
     const resolvedImage = absoluteUrl(image || siteConfig.defaultSeoImage);
+    const resolvedImageAlt = cleanText(imageAlt || `${siteConfig.brandName} collection image`);
 
     return {
       canonical,
       title: resolvedTitle,
       description: resolvedDescription,
+      keywords: resolvedKeywords,
       image: resolvedImage,
+      imageAlt: resolvedImageAlt,
       robots: noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large',
       jsonLd,
     };
-  }, [description, image, jsonLd, location.pathname, noindex, path, title]);
+  }, [description, image, imageAlt, jsonLd, keywords, location.pathname, noindex, path, title]);
 
   useEffect(() => {
     document.title = seo.title;
     document.documentElement.lang = 'en-IN';
 
     upsertMeta('meta[name="description"]', { name: 'description' }, { content: seo.description });
+    upsertMeta('meta[name="keywords"]', { name: 'keywords' }, { content: seo.keywords });
     upsertMeta('meta[name="robots"]', { name: 'robots' }, { content: seo.robots });
     upsertMeta('meta[name="theme-color"]', { name: 'theme-color' }, { content: '#171412' });
 
@@ -97,14 +118,18 @@ function Seo({
     upsertMeta('meta[property="og:type"]', { property: 'og:type' }, { content: type });
     upsertMeta('meta[property="og:url"]', { property: 'og:url' }, { content: seo.canonical });
     upsertMeta('meta[property="og:image"]', { property: 'og:image' }, { content: seo.image });
+    upsertMeta('meta[property="og:image:alt"]', { property: 'og:image:alt' }, { content: seo.imageAlt });
     upsertMeta('meta[property="og:locale"]', { property: 'og:locale' }, { content: 'en_IN' });
 
     upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card' }, { content: 'summary_large_image' });
     upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title' }, { content: seo.title });
     upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description' }, { content: seo.description });
     upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image' }, { content: seo.image });
+    upsertMeta('meta[name="twitter:image:alt"]', { name: 'twitter:image:alt' }, { content: seo.imageAlt });
 
     upsertLink('canonical', seo.canonical);
+    upsertLinkWithSelector('link[rel="alternate"][hreflang="en-IN"]', { rel: 'alternate', hreflang: 'en-IN' }, seo.canonical);
+    upsertLinkWithSelector('link[rel="alternate"][hreflang="x-default"]', { rel: 'alternate', hreflang: 'x-default' }, seo.canonical);
     upsertJsonLd('page-json-ld', seo.jsonLd);
   }, [seo, type]);
 

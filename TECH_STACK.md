@@ -1,7 +1,7 @@
-# Parsom Tech Stack
+# Parsom Attire Tech Stack
 
 ## Overview
-This repository is a multi-app JavaScript monorepo for the Parsom commerce platform:
+This repository is a multi-app JavaScript monorepo for the Parsom Attire commerce platform:
 - `apps/web`: customer storefront
 - `apps/admin`: internal admin panel
 - `apps/api`: backend API

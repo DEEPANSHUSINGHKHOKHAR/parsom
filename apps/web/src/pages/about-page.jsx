@@ -41,9 +41,9 @@ export default function AboutPage() {
           <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 sm:pb-20 lg:px-8">
             <div className="max-w-3xl">
               <span className="mb-5 block text-label text-accent-primary">About the company</span>
-              <h1 className="text-display-1 text-foreground-primary">PARSOM ATTIRES</h1>
+              <h1 className="text-display-1 text-foreground-primary">PARSOM ATTIRE</h1>
               <p className="mt-6 max-w-2xl text-body-lg text-[#ddd5ca]">
-                PARSOM ATTIRES was established in March 2026 as an online fashion brand
+                PARSOM ATTIRE was established in March 2026 as an online fashion brand
                 built for modern women who want clothing that feels elegant,
                 comfortable, and expressive.
               </p>
@@ -75,7 +75,7 @@ export default function AboutPage() {
               <p className="mt-6 text-body text-foreground-secondary">
                 We believe a clothing brand should not only look beautiful, but also feel
                 organized, transparent, and customer-friendly. That is why every part of
-                PARSOM ATTIRES is being developed as a real fashion business system, not
+                PARSOM ATTIRE is being developed as a real fashion business system, not
                 just a display website.
               </p>
             </motion.div>
@@ -115,7 +115,7 @@ export default function AboutPage() {
               <p className="text-label text-accent-primary">Brand rollout</p>
               <h2 className="mt-4 text-display-3 text-foreground-primary">Current scope and next phase</h2>
               <p className="mt-5 text-body text-foreground-secondary">
-                PARSOM ATTIRES is currently building its foundation around women&apos;s
+                PARSOM ATTIRE is currently building its foundation around women&apos;s
                 fashion, direct customer support, and online order management.
               </p>
               <p className="mt-4 text-body text-foreground-secondary">

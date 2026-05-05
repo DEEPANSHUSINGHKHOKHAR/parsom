@@ -1,35 +1,7 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Quote } from 'lucide-react';
-
-const reviews = [
-  {
-    name: 'Marcus Thorne',
-    platform: 'Instagram',
-    review:
-      "The quality of the archive drop is unmatched. The fabric weight and the cut are exactly what I've been looking for in high-end streetwear.",
-    avatar:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
-    link: 'https://instagram.com/parsomattire',
-  },
-  {
-    name: 'Elena Rossi',
-    platform: 'Twitter',
-    review:
-      'parsom has mastered the minimal luxury aesthetic. Every piece feels like a curated work of art.',
-    avatar:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop',
-    link: 'https://x.com/parsomattire',
-  },
-  {
-    name: 'Julian Chen',
-    platform: 'WhatsApp',
-    review:
-      'Support was incredible. They helped me find my size perfectly using the measuring guide.',
-    avatar:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
-    link: 'https://wa.me/919289854887',
-  },
-];
+import { Quote, Star } from 'lucide-react';
+import { fetchWebsiteReviews } from '../../services/reviews-service';
 
 const sectionReveal = {
   hidden: { opacity: 0, y: 34 },
@@ -60,6 +32,40 @@ const cardReveal = {
 };
 
 export default function SocialProof() {
+  const [reviewState, setReviewState] = useState({
+    averageRating: 0,
+    reviewCount: 0,
+    items: [],
+  });
+
+  useEffect(() => {
+    let ignore = false;
+
+    fetchWebsiteReviews()
+      .then((data) => {
+        if (!ignore) {
+          setReviewState({
+            averageRating: Number(data.averageRating || 0),
+            reviewCount: Number(data.reviewCount || 0),
+            items: Array.isArray(data.items) ? data.items : [],
+          });
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setReviewState({ averageRating: 0, reviewCount: 0, items: [] });
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const communityRating = Number(reviewState.averageRating || 0);
+  const communityReviewCount = Number(reviewState.reviewCount || 0);
+  const reviews = reviewState.items;
+
   return (
     <section className="relative overflow-hidden bg-background-base py-32">
       <motion.div
@@ -88,6 +94,21 @@ export default function SocialProof() {
         <p className="mx-auto max-w-2xl text-body-lg italic text-foreground-secondary">
           Trust and quality defined by our growing community of enthusiasts.
         </p>
+        <div className="mx-auto mt-8 flex w-fit flex-col items-center gap-3 rounded-[8px] border border-glass-stroke bg-glass-soft px-6 py-5 text-center shadow-[0_12px_32px_rgba(0,0,0,0.22)] backdrop-blur-[20px] sm:flex-row sm:gap-4 sm:text-left">
+          <div className="flex items-center gap-1 text-accent-primary">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Star key={index} size={18} className="fill-current" />
+            ))}
+          </div>
+          <div className="space-y-1">
+            <p className="text-lg font-semibold text-foreground-primary">
+              {communityRating.toFixed(1)} overall rating
+            </p>
+            <p className="text-sm text-foreground-secondary">
+              {communityReviewCount} website reviews
+            </p>
+          </div>
+        </div>
       </motion.div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -96,14 +117,16 @@ export default function SocialProof() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
-          className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:gap-8"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:gap-8"
         >
-          {reviews.map((item, index) => (
-            <motion.a
+          {reviews.length === 0 ? (
+            <div className="col-span-full rounded-[8px] border border-glass-stroke bg-glass-soft p-8 text-center text-foreground-secondary">
+              Website reviews will appear here after customers share their experience.
+            </div>
+          ) : (
+            reviews.map((item, index) => (
+            <motion.div
               key={index}
-              href={item.link}
-              target="_blank"
-              rel="noreferrer"
               variants={cardReveal}
               whileHover={{
                 y: -8,
@@ -114,14 +137,28 @@ export default function SocialProof() {
               className="group flex min-h-56 flex-col gap-3 rounded-[8px] border border-glass-stroke bg-glass-soft p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_16px_48px_rgba(0,0,0,0.36)] backdrop-blur-[20px] transition-shadow duration-300 ease-in-out sm:min-h-64 sm:gap-4 sm:p-5 lg:gap-6 lg:p-8"
             >
               <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
-                <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border-soft bg-background-panel sm:h-11 sm:w-11 lg:h-12 lg:w-12">
-                  <img src={item.avatar} alt={item.name} className="h-full w-full object-cover" />
-                </div>
+                {item.reviewerAvatarUrl ? (
+                  <img
+                    src={item.reviewerAvatarUrl}
+                    alt={item.reviewerName}
+                    className="h-9 w-9 shrink-0 rounded-full border border-border-soft bg-background-panel object-cover sm:h-11 sm:w-11 lg:h-12 lg:w-12"
+                  />
+                ) : (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border-soft bg-background-panel text-sm font-semibold uppercase text-accent-primary sm:h-11 sm:w-11 lg:h-12 lg:w-12">
+                    {String(item.reviewerName || 'C').slice(0, 1)}
+                  </div>
+                )}
                 <div className="min-w-0">
                   <h3 className="truncate text-sm font-bold leading-5 text-foreground-primary sm:text-body">
-                    {item.name}
+                    {item.reviewerName}
                   </h3>
-                  <p className="text-caption text-foreground-muted">{item.platform}</p>
+                  <p className="text-caption text-foreground-muted">
+                    {item.source === 'outside'
+                      ? item.platform || 'Outside review'
+                      : item.source === 'admin'
+                        ? 'Featured review'
+                        : 'Customer review'}
+                  </p>
                 </div>
                 <Quote
                   className="ml-auto hidden shrink-0 text-accent-primary/20 transition-colors group-hover:text-accent-primary sm:block"
@@ -130,17 +167,18 @@ export default function SocialProof() {
               </div>
 
               <p className="line-clamp-5 text-sm italic leading-6 text-foreground-secondary sm:line-clamp-6 sm:text-body">
-                "{item.review}"
+                "{item.comment}"
               </p>
 
               <div className="mt-auto flex flex-col gap-2 border-t border-glass-stroke pt-3 text-caption text-foreground-muted sm:flex-row sm:items-center sm:justify-between sm:pt-4 lg:pt-6">
-                <span>Verified Purchase</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-accent-primary group-hover:underline">
-                  View Post
+                <span>Website Rating</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-accent-primary">
+                  {Number(item.rating || 0)}/5
                 </span>
               </div>
-            </motion.a>
-          ))}
+            </motion.div>
+          ))
+          )}
         </motion.div>
       </div>
     </section>

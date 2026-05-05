@@ -7,64 +7,63 @@ import Button from '../components/ui/button';
 import PriceBlock from '../components/ui/price-block';
 import LoadingState from '../components/ui/loading-state';
 import EmptyState from '../components/ui/empty-state';
-import StarRating from '../components/ui/star-rating';
 import ProductGallery from '../features/product/components/product-gallery';
 import SizeSelector from '../features/product/components/size-selector';
 import QuantityStepper from '../features/product/components/quantity-stepper';
 import NotifyMeModal from '../features/product/components/notify-me-modal';
-import ProductCard, { ProductRating } from '../features/collection/components/product-card';
+import ProductCard from '../features/collection/components/product-card';
 import { fetchProductBySlug } from '../services/products-service';
 import { useCartStore } from '../features/cart/cart-store';
 import { siteConfig } from '../config/site-config';
 import { sizeChartRows } from '../config/size-chart';
 import { addWishlistItem } from '../services/wishlist-service';
 import Seo from '../components/seo/seo';
-import { absoluteUrl, cleanText } from '../components/seo/seo-utils';
+import { absoluteUrl, buildBreadcrumbJsonLd, cleanText } from '../components/seo/seo-utils';
+
+function hasMeaningfulCopy(value) {
+  return (
+    typeof value === 'string' &&
+    value.trim() !== '' &&
+    value.trim().toUpperCase() !== 'USE YOUR DATA HERE'
+  );
+}
+
+function resolveProductCopy(...values) {
+  return values.find((value) => hasMeaningfulCopy(value)) || '';
+}
 
 function buildWhatsAppMessage({ product, selectedSize, quantity }) {
   return [
     `Hello, I want to order:`,
-    `Product: ${product?.name || 'USE YOUR DATA HERE'}`,
-    `Size: ${selectedSize || 'USE YOUR DATA HERE'}`,
+    `Product: ${product?.name || 'Product inquiry'}`,
+    `Size: ${selectedSize || 'Please suggest'}`,
     `Quantity: ${quantity}`,
-    `Price: ${product?.discountPrice ?? product?.price ?? 'USE YOUR DATA HERE'}`,
-    `Customer Details: USE YOUR DATA HERE`,
-    `Address: USE YOUR DATA HERE`,
+    `Price: ${product?.discountPrice ?? product?.price ?? 'Please confirm'}`,
   ].join('\n');
 }
 
-function ReviewMediaPreview({ item }) {
-  if (!item?.url) return null;
-
-  if (item.type === 'video') {
-    return (
-      <video
-        src={item.url}
-        controls
-        className="aspect-square w-full rounded-[8px] border border-[#171412]/10 bg-[#171412] object-contain"
-      />
-    );
-  }
-
-  return (
-    <img
-      src={item.url}
-      alt="Review media"
-      className="aspect-square w-full rounded-[8px] border border-[#171412]/10 bg-[#ede8df] object-contain"
-      loading="lazy"
-    />
-  );
-}
-
 function ProductInfoRows({ product }) {
+  const productDescription = resolveProductCopy(
+    product.description,
+    product.shortDescription
+  );
+  const constructionDetails = resolveProductCopy(product.materialDetails);
+  const shippingDetails = resolveProductCopy(product.shippingNotes);
+  const careDetails = resolveProductCopy(product.careDetails);
+
   const rows = [
     {
       label: 'Product details',
-      value: product.description || 'USE YOUR DATA HERE',
+      value:
+        productDescription ||
+        'A full description for this piece will be added soon.',
+      defaultOpen: true,
     },
     {
       label: 'Construction',
-      value: product.materialDetails || 'USE YOUR DATA HERE',
+      value:
+        constructionDetails ||
+        'Fabric and construction details will be shared shortly.',
     },
     {
       label: 'Size guide',
@@ -100,18 +99,24 @@ function ProductInfoRows({ product }) {
     },
     {
       label: 'Shipping and returns',
-      value: product.shippingNotes || 'USE YOUR DATA HERE',
+      value:
+        shippingDetails ||
+        'Dispatch timelines and return eligibility are shared at checkout and on our returns page.',
     },
     {
       label: 'Care',
-      value: 'Dry clean or gentle cold wash recommended.',
+      value: careDetails || 'Dry clean or gentle cold wash recommended.',
     },
   ];
 
   return (
     <div className="divide-y divide-[#171412]/10 border-y border-[#171412]/10">
       {rows.map((row) => (
-        <details key={row.label} className="group">
+        <details
+          key={row.label}
+          className="group"
+          open={Boolean(row.defaultOpen)}
+        >
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-sm font-semibold text-[#171412]">
             <span>{row.label}</span>
             <ChevronRight
@@ -208,6 +213,32 @@ export default function ProductDetailPage() {
   }, [slug]);
 
   const product = state.product;
+  const productDescription = resolveProductCopy(
+    product?.description,
+    product?.shortDescription
+  );
+  const productCategory = resolveProductCopy(product?.categoryName);
+  const productMedia = useMemo(() => {
+    const items = Array.isArray(product?.media)
+      ? product.media.filter((item) => item?.url)
+      : [];
+
+    if (items.length > 0) {
+      return items;
+    }
+
+    if (product?.primaryImage) {
+      return [
+        {
+          url: product.primaryImage,
+          type: 'image',
+          alt: product.name || 'Product image',
+        },
+      ];
+    }
+
+    return [];
+  }, [product]);
 
   const productSeo = useMemo(() => {
     if (!product) return null;
@@ -218,8 +249,8 @@ export default function ProductDetailPage() {
       product.media?.find((item) => item?.type !== 'video')?.url ||
       siteConfig.defaultSeoImage;
     const description = cleanText(
-      product.description ||
-        `${product.name} from ${siteConfig.brandName}, crafted for a minimal luxury streetwear wardrobe.`
+      productDescription ||
+        `${product.name} from ${siteConfig.brandName}, crafted for a minimal luxury wardrobe.`
     );
     const canonicalPath = `/products/${product.slug || slug}`;
     const inStock = Array.isArray(product.sizes)
@@ -253,51 +284,49 @@ export default function ProductDetailPage() {
             url: absoluteUrl(canonicalPath),
             priceCurrency: 'INR',
             price: price ? String(price) : undefined,
+            priceValidUntil: '2026-12-31',
             availability: inStock
               ? 'https://schema.org/InStock'
               : 'https://schema.org/OutOfStock',
             itemCondition: 'https://schema.org/NewCondition',
+            seller: {
+              '@type': 'Organization',
+              name: siteConfig.brandName,
+            },
           },
           aggregateRating:
-            Array.isArray(product.reviews) && product.reviews.length > 0
+            product.reviewCount > 0
               ? {
                   '@type': 'AggregateRating',
-                  ratingValue:
-                    product.reviews.reduce(
-                      (total, review) => total + Number(review.rating || 0),
-                      0
-                    ) / product.reviews.length,
-                  reviewCount: product.reviews.length,
+                  ratingValue: Number(product.avgRating || 0).toFixed(1),
+                  reviewCount: product.reviewCount,
                 }
               : undefined,
+          review: Array.isArray(product.reviews)
+            ? product.reviews.slice(0, 5).map((review) => ({
+                '@type': 'Review',
+                reviewRating: {
+                  '@type': 'Rating',
+                  ratingValue: review.rating,
+                  bestRating: 5,
+                },
+                author: {
+                  '@type': 'Person',
+                  name: review.userName || 'Verified customer',
+                },
+                reviewBody: review.comment,
+                datePublished: review.createdAt,
+              }))
+            : undefined,
         },
-        {
-          '@context': 'https://schema.org',
-          '@type': 'BreadcrumbList',
-          itemListElement: [
-            {
-              '@type': 'ListItem',
-              position: 1,
-              name: 'Home',
-              item: absoluteUrl('/'),
-            },
-            {
-              '@type': 'ListItem',
-              position: 2,
-              name: 'Collection',
-              item: absoluteUrl('/collection'),
-            },
-            {
-              '@type': 'ListItem',
-              position: 3,
-              name: product.name,
-              item: absoluteUrl(canonicalPath),
-            },
-          ],
-        },
+        buildBreadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Collection', path: '/collection' },
+          { name: product.name, path: canonicalPath },
+        ]),
       ],
     };
-  }, [product, slug]);
+  }, [product, productDescription, slug]);
 
   const selectedSizeOption = useMemo(() => {
     if (!product?.sizes?.length || !selectedSize) return null;
@@ -417,28 +446,25 @@ export default function ProductDetailPage() {
         </div>
 
         <div className="mx-auto grid max-w-[1600px] gap-8 lg:grid-cols-[minmax(0,1.18fr)_minmax(420px,0.82fr)] xl:gap-12">
-          <ProductGallery media={product.media || []} />
+          <ProductGallery media={productMedia} />
 
           <div className="lg:sticky lg:top-28 lg:self-start">
           <div className="space-y-6 bg-[#f6f3ee] px-1 pb-8 md:px-3">
             <div className="space-y-3">
-              <p className="text-xs uppercase text-[#756c63]">
-                {product.categoryName || 'USE YOUR DATA HERE'}
-              </p>
+              {productCategory ? (
+                <p className="text-xs uppercase text-[#756c63]">
+                  {productCategory}
+                </p>
+              ) : null}
 
               <h1 className="text-4xl font-semibold leading-none tracking-tight text-[#171412] md:text-6xl">
                 {product.name}
               </h1>
-
-              <ProductRating
-                rating={product.avgRating}
-                count={product.reviewCount}
-                tone="light"
-              />
-
-              <p className="max-w-2xl text-sm leading-7 text-[#756c63]">
-                {product.description || 'USE YOUR DATA HERE'}
-              </p>
+              {productDescription ? (
+                <p className="max-w-2xl text-sm leading-7 text-[#756c63]">
+                  {productDescription}
+                </p>
+              ) : null}
             </div>
 
             <PriceBlock
@@ -529,7 +555,7 @@ export default function ProductDetailPage() {
                   onClick={() =>
                     setNotifyModal({
                       open: true,
-                      size: selectedSize || 'USE YOUR DATA HERE',
+                      size: selectedSize || '',
                     })
                   }
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#8f3d2f]/25 bg-[#f7e9e5] px-5 py-3 text-sm font-semibold text-[#8f3d2f] shadow-[0_10px_26px_rgba(143,61,47,0.08)] transition hover:border-[#8f3d2f]/40 hover:bg-[#efd7d0]"
@@ -553,63 +579,6 @@ export default function ProductDetailPage() {
           </div>
           </div>
         </div>
-
-        <section className="mx-auto mt-16 grid max-w-[1600px] gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-          <div className="space-y-4">
-            <p className="text-xs uppercase text-[#756c63]">After Purchase</p>
-            <h2 className="max-w-xl text-3xl font-semibold tracking-tight text-[#171412] md:text-5xl">
-              Details, reviews, and fit notes stay right where shoppers expect them.
-            </h2>
-          </div>
-          <div className="rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-6 backdrop-blur-xl">
-            <h2 className="text-2xl font-semibold tracking-tight text-[#171412]">
-              Reviews
-            </h2>
-
-            {Array.isArray(product.reviews) && product.reviews.length > 0 ? (
-              <div className="mt-5 space-y-4">
-                {product.reviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="rounded-[8px] border border-[#171412]/10 bg-[#f4efe8] p-4"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <h3 className="font-medium text-[#171412]">
-                        {review.userName || 'USE YOUR DATA HERE'}
-                      </h3>
-                      <StarRating rating={review.rating} size={14} />
-                    </div>
-                    <p className="mt-3 text-sm leading-7 text-[#756c63]">
-                      {review.comment || 'USE YOUR DATA HERE'}
-                    </p>
-                    {review.media?.length ? (
-                      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        {review.media.map((mediaItem, index) => (
-                          <ReviewMediaPreview
-                            key={`${review.id}-${mediaItem.url}-${index}`}
-                            item={mediaItem}
-                          />
-                        ))}
-                      </div>
-                    ) : null}
-                    {review.adminReply ? (
-                      <div className="mt-4 rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-4 text-sm leading-7 text-[#574f48]">
-                        <p className="text-xs uppercase text-[#756c63]">
-                          PARSOM ATTIRE
-                        </p>
-                        <p className="mt-2">{review.adminReply}</p>
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-5 rounded-[8px] border border-dashed border-[#171412]/15 bg-[#f4efe8] p-6 text-sm text-[#756c63]">
-                No reviews available yet.
-              </div>
-            )}
-          </div>
-        </section>
 
         <section className="mx-auto mt-16 max-w-[1600px]">
           <div className="mb-8">

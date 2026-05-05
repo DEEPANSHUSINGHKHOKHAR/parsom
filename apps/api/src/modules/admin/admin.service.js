@@ -100,6 +100,10 @@ function parseAddressSnapshot(snapshot) {
   }
 }
 
+function isSuccessfulRefundStatus(status) {
+  return ['processed', 'captured', 'refunded'].includes(status);
+}
+
 function slugifyProductName(value) {
   return String(value || '')
     .trim()
@@ -1153,12 +1157,17 @@ async function listAdminOrders(filters) {
     params.push(filters.status);
   }
 
+  if (filters.paymentMethod) {
+    conditions.push('o.payment_method = ?');
+    params.push(filters.paymentMethod);
+  }
+
   if (filters.search) {
     conditions.push(
-      '(o.order_number LIKE ? OR o.customer_name LIKE ? OR o.customer_email LIKE ? OR o.customer_phone LIKE ?)'
+      '(o.order_number LIKE ? OR o.customer_name LIKE ? OR o.customer_email LIKE ? OR o.customer_phone LIKE ? OR o.coupon_code LIKE ?)'
     );
     const term = `%${filters.search}%`;
-    params.push(term, term, term, term);
+    params.push(term, term, term, term, term);
   }
 
   const rows = await query(
@@ -1171,6 +1180,9 @@ async function listAdminOrders(filters) {
         o.customer_phone AS customerPhone,
         o.order_status AS status,
         o.payment_method AS paymentMethod,
+        o.coupon_code AS couponCode,
+        o.cod_unlocked_by_coupon AS codUnlockedByCoupon,
+        o.hidden_coupon_applied AS hiddenCouponApplied,
         o.payment_status AS paymentStatus,
         o.refund_status AS refundStatus,
         o.refund_reference AS refundReference,
@@ -1211,6 +1223,9 @@ async function listAdminOrders(filters) {
     customerPhone: row.customerPhone,
     status: row.status,
     paymentMethod: row.paymentMethod,
+    couponCode: row.couponCode,
+    codUnlockedByCoupon: Boolean(row.codUnlockedByCoupon),
+    hiddenCouponApplied: Boolean(row.hiddenCouponApplied),
     paymentStatus: row.paymentStatus,
     refundStatus: row.refundStatus,
     refundReference: row.refundReference,
@@ -1310,6 +1325,9 @@ async function getAdminOrderByNumber(orderNumber) {
     },
     status: order.order_status,
     paymentMethod: order.payment_method,
+    couponCode: order.coupon_code,
+    codUnlockedByCoupon: Boolean(order.cod_unlocked_by_coupon),
+    hiddenCouponApplied: Boolean(order.hidden_coupon_applied),
     paymentStatus: order.payment_status,
     refundStatus: order.refund_status,
     refundReference: order.refund_reference,
@@ -1687,11 +1705,25 @@ async function listAdminReturnRequests(filters) {
         rr.reason,
         rr.status,
         rr.admin_notes AS adminNotes,
+        rr.refund_status AS refundStatus,
+        rr.refund_reference AS refundReference,
+        rr.refund_amount AS refundAmount,
+        rr.refund_error AS refundError,
+        rr.refunded_at AS refundedAt,
         rr.created_at AS createdAt,
+        oi.item_total AS lineTotal,
+        o.payment_method AS paymentMethod,
+        o.payment_status AS paymentStatus,
+        o.razorpay_payment_id AS razorpayPaymentId,
+        o.customer_phone AS customerPhone,
         u.first_name AS firstName,
         u.last_name AS lastName,
         u.email
       FROM return_requests rr
+      INNER JOIN orders o
+        ON o.id = rr.order_id
+      INNER JOIN order_items oi
+        ON oi.id = rr.order_item_id
       INNER JOIN users u
         ON u.id = rr.user_id
       WHERE ${conditions.join(' AND ')}
@@ -1710,7 +1742,17 @@ async function listAdminReturnRequests(filters) {
     reason: row.reason,
     status: row.status,
     adminNotes: row.adminNotes,
+    refundStatus: row.refundStatus,
+    refundReference: row.refundReference,
+    refundAmount: row.refundAmount !== null ? Number(row.refundAmount) : null,
+    refundError: row.refundError,
+    refundedAt: row.refundedAt,
     createdAt: row.createdAt,
+    lineTotal: Number(row.lineTotal || 0),
+    paymentMethod: row.paymentMethod,
+    paymentStatus: row.paymentStatus,
+    razorpayPaymentId: row.razorpayPaymentId,
+    customerPhone: row.customerPhone,
     customerName: [row.firstName, row.lastName].filter(Boolean).join(' '),
     customerEmail: row.email,
   }));
@@ -1752,6 +1794,195 @@ async function updateAdminReturnRequest(returnRequestId, payload) {
   };
 }
 
+async function refundAdminReturnRequest(returnRequestId) {
+  await ensureStoreSchema();
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [rows] = await connection.execute(
+      `
+        SELECT
+          rr.id,
+          rr.order_id AS orderId,
+          rr.order_item_id AS orderItemId,
+          rr.order_number_snapshot AS orderNumber,
+          rr.product_name_snapshot AS productName,
+          rr.size_label AS sizeLabel,
+          rr.status,
+          rr.refund_status AS refundStatus,
+          rr.refund_reference AS refundReference,
+          rr.refund_amount AS refundAmount,
+          o.payment_method AS paymentMethod,
+          o.payment_status AS paymentStatus,
+          o.razorpay_payment_id AS razorpayPaymentId,
+          o.total_amount AS orderTotalAmount,
+          oi.item_total AS lineTotal
+        FROM return_requests rr
+        INNER JOIN orders o
+          ON o.id = rr.order_id
+        INNER JOIN order_items oi
+          ON oi.id = rr.order_item_id
+        WHERE rr.id = ?
+          AND rr.deleted_at IS NULL
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [returnRequestId]
+    );
+
+    const request = rows[0];
+
+    if (!request) {
+      throw new AppError(404, 'Return request not found.');
+    }
+
+    if (request.status !== 'approved') {
+      throw new AppError(409, 'Approve the return request before processing a refund.');
+    }
+
+    if (isSuccessfulRefundStatus(request.refundStatus)) {
+      throw new AppError(409, 'Refund has already been processed for this return request.');
+    }
+
+    if (request.paymentMethod !== 'razorpay') {
+      throw new AppError(409, 'Refund button is only available for Razorpay payments.');
+    }
+
+    if (request.paymentStatus !== 'paid') {
+      throw new AppError(409, 'Only paid orders can be refunded.');
+    }
+
+    if (!request.razorpayPaymentId) {
+      throw new AppError(422, 'Razorpay payment reference is missing for this order.');
+    }
+
+    let refund = null;
+
+    try {
+      refund = await refundRazorpayPayment({
+        razorpayPaymentId: request.razorpayPaymentId,
+        amount: request.lineTotal,
+        notes: {
+          orderNumber: request.orderNumber,
+          returnRequestId: String(returnRequestId),
+          productName: request.productName,
+          size: request.sizeLabel,
+        },
+      });
+    } catch (error) {
+      await connection.execute(
+        `
+          UPDATE return_requests
+          SET refund_status = 'failed',
+              refund_error = ?,
+              refund_payload = JSON_OBJECT('status', 'failed', 'error', ?),
+              updated_at = NOW()
+          WHERE id = ?
+        `,
+        [error?.message || 'Refund failed.', error?.message || 'Refund failed.', returnRequestId]
+      );
+
+      await connection.commit();
+      throw error;
+    }
+
+    const refundStatus = refund?.status || 'processed';
+    const refundReference = refund?.id || null;
+    const refundAmount = Number(request.lineTotal);
+
+    await connection.execute(
+      `
+        UPDATE return_requests
+        SET status = 'completed',
+            refund_status = ?,
+            refund_reference = ?,
+            refund_amount = ?,
+            refund_error = NULL,
+            refund_payload = JSON_OBJECT('status', ?, 'reference', ?, 'amount', ?),
+            refunded_at = NOW(),
+            updated_at = NOW()
+        WHERE id = ?
+      `,
+      [
+        refundStatus,
+        refundReference,
+        refundAmount,
+        refundStatus,
+        refundReference,
+        refundAmount,
+        returnRequestId,
+      ]
+    );
+
+    const [aggregateRows] = await connection.execute(
+      `
+        SELECT COALESCE(SUM(refund_amount), 0) AS totalRefunded
+        FROM return_requests
+        WHERE order_id = ?
+          AND refund_status IN ('processed', 'captured', 'refunded')
+          AND deleted_at IS NULL
+      `,
+      [request.orderId]
+    );
+
+    const totalRefunded = Number(aggregateRows[0]?.totalRefunded || 0);
+    const orderRefundStatus =
+      totalRefunded >= Number(request.orderTotalAmount) ? 'refunded' : 'partial_refunded';
+    const nextPaymentStatus =
+      totalRefunded >= Number(request.orderTotalAmount) ? 'refunded' : request.paymentStatus;
+
+    await connection.execute(
+      `
+        UPDATE orders
+        SET payment_status = ?,
+            refund_status = ?,
+            refund_reference = ?,
+            refund_amount = ?,
+            refund_error = NULL,
+            refund_payload = JSON_OBJECT(
+              'scope', 'return_request',
+              'returnRequestId', ?,
+              'status', ?,
+              'reference', ?,
+              'totalRefunded', ?
+            ),
+            refunded_at = NOW(),
+            updated_at = NOW()
+        WHERE id = ?
+      `,
+      [
+        nextPaymentStatus,
+        orderRefundStatus,
+        refundReference,
+        totalRefunded,
+        Number(returnRequestId),
+        refundStatus,
+        refundReference,
+        totalRefunded,
+        request.orderId,
+      ]
+    );
+
+    await connection.commit();
+
+    return {
+      returnRequestId: Number(returnRequestId),
+      status: 'completed',
+      refundStatus,
+      refundReference,
+      refundAmount,
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 module.exports = {
   listAdminProducts,
   getAdminProductById,
@@ -1770,4 +2001,5 @@ module.exports = {
   updateAdminStorefrontSettings,
   listAdminReturnRequests,
   updateAdminReturnRequest,
+  refundAdminReturnRequest,
 };

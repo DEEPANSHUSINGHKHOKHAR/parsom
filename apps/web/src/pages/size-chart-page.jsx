@@ -87,7 +87,7 @@ export default function SizeChartPage() {
                 Women's Size Guide
               </h1>
               <p className="mt-5 max-w-3xl text-body text-foreground-secondary">
-                Find your PARSOM fit for kurtas, tops, pants, and co-ord sets.
+                Find your PARSOM ATTIRE fit for kurtas, tops, pants, and co-ord sets.
                 Measure close to the body, then choose the garment size that gives
                 your preferred comfort and drape.
               </p>

@@ -18,7 +18,7 @@ const highlights = [
   {
     icon: Sparkles,
     label: 'Signature finish',
-    copy: 'Minimal PARSOM detailing with refined proportions and premium finishing.',
+    copy: 'Minimal PARSOM ATTIRE detailing with refined proportions and premium finishing.',
   },
 ];
 
@@ -49,7 +49,7 @@ export default function StitchYourClothPage() {
               Stitch Your Cloth
             </h1>
             <p className="mt-8 max-w-2xl text-body-lg text-foreground-secondary">
-              A custom clothing experience is being prepared for PARSOM clients. Soon you will be
+              A custom clothing experience is being prepared for PARSOM ATTIRE clients. Soon you will be
               able to shape fabrics, fits, and finish details into pieces made closer to your style.
             </p>
 

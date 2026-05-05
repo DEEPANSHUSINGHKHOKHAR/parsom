@@ -12,6 +12,41 @@ router.use(requireAuth);
 
 router.get('/', requirePermission('reviews.read'), controller.listReviews);
 
+router.post(
+  '/',
+  requirePermission('reviews.moderate'),
+  [
+    body('reviewerName').trim().notEmpty().isLength({ max: 160 }),
+    body('reviewerEmail').optional({ values: 'falsy' }).trim().isEmail().isLength({ max: 190 }),
+    body('reviewerAvatarUrl').optional({ values: 'falsy' }).trim().isLength({ max: 500 }),
+    body('rating').isInt({ min: 1, max: 5 }),
+    body('comment').trim().notEmpty(),
+    body('source').optional({ values: 'falsy' }).trim().isIn(['admin', 'outside', 'customer']),
+    body('platform').optional({ values: 'falsy' }).trim().isLength({ max: 40 }),
+    body('isPublished').isBoolean(),
+  ],
+  validateRequest,
+  controller.createWebsiteReview
+);
+
+router.patch(
+  '/:reviewId',
+  requirePermission('reviews.moderate'),
+  [
+    param('reviewId').isInt({ min: 1 }),
+    body('reviewerName').trim().notEmpty().isLength({ max: 160 }),
+    body('reviewerEmail').optional({ values: 'falsy' }).trim().isEmail().isLength({ max: 190 }),
+    body('reviewerAvatarUrl').optional({ values: 'falsy' }).trim().isLength({ max: 500 }),
+    body('rating').isInt({ min: 1, max: 5 }),
+    body('comment').trim().notEmpty(),
+    body('source').optional({ values: 'falsy' }).trim().isIn(['admin', 'outside', 'customer']),
+    body('platform').optional({ values: 'falsy' }).trim().isLength({ max: 40 }),
+    body('isPublished').isBoolean(),
+  ],
+  validateRequest,
+  controller.updateWebsiteReview
+);
+
 router.patch(
   '/:reviewId/publish',
   requirePermission('reviews.moderate'),

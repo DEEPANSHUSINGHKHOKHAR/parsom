@@ -1,7 +1,10 @@
 const { query } = require('../../config/db');
 const AppError = require('../../utils/app-error');
+const { ensureStoreSchema } = require('../../utils/store-schema');
 
 async function validateCouponForCheckout(payload) {
+  await ensureStoreSchema();
+
   const subtotal = Number(payload.subtotal || 0);
   const code = String(payload.code || '').trim().toUpperCase();
 
@@ -68,6 +71,8 @@ async function validateCouponForCheckout(payload) {
     discountValue: Number(coupon.discount_value),
     discountAmount,
     totalAfterDiscount: subtotal - discountAmount,
+    isHidden: Boolean(coupon.is_hidden),
+    unlocksCod: Boolean(coupon.unlocks_cod),
   };
 }
 

@@ -5,6 +5,11 @@ export async function fetchMyReviews() {
   return data?.data || [];
 }
 
+export async function fetchWebsiteReviews() {
+  const { data } = await apiClient.get('/reviews/website');
+  return data?.data || { averageRating: 0, reviewCount: 0, items: [] };
+}
+
 export async function fetchEligibleReviewItems() {
   const { data } = await apiClient.get('/reviews/eligible');
   return data?.data || [];

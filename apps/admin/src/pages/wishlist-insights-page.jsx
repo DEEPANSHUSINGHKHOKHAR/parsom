@@ -11,7 +11,7 @@ function getWhatsAppHref(item) {
   }
 
   const messageParts = [
-    `Hi ${item.customerName || 'there'}, this is Parsom.`,
+    `Hi ${item.customerName || 'there'}, this is Parsom Attire.`,
     `We noticed you saved ${item.product?.name || 'one of our products'} to your wishlist.`,
     'Would you like any help with size, availability, or placing the order?',
   ];

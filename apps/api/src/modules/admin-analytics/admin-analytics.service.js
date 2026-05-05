@@ -1,6 +1,9 @@
 const { query } = require('../../config/db');
+const { ensureStoreSchema } = require('../../utils/store-schema');
 
 async function getOverview() {
+  await ensureStoreSchema();
+
   const [
     totalOrdersRows,
     pendingOrdersRows,
@@ -113,11 +116,14 @@ async function getOverview() {
         SELECT
           c.id,
           c.code,
+          c.is_hidden AS isHidden,
+          c.unlocks_cod AS unlocksCod,
           c.usage_limit AS usageLimit,
           c.usage_per_user AS perUserLimit,
           c.used_count AS totalUsed,
           COUNT(o.id) AS orderUsageCount,
-          COALESCE(SUM(CASE WHEN o.order_status <> 'cancelled' THEN o.discount_amount ELSE 0 END), 0) AS totalDiscountGiven
+          COALESCE(SUM(CASE WHEN o.order_status <> 'cancelled' THEN o.discount_amount ELSE 0 END), 0) AS totalDiscountGiven,
+          COALESCE(SUM(CASE WHEN o.payment_method = 'cod' THEN 1 ELSE 0 END), 0) AS codOrdersCount
         FROM coupons c
         LEFT JOIN orders o
           ON o.coupon_id = c.id
@@ -162,11 +168,14 @@ async function getOverview() {
     couponTracking: couponTrackingRows.map((row) => ({
       id: row.id,
       code: row.code,
+      isHidden: Boolean(row.isHidden),
+      unlocksCod: Boolean(row.unlocksCod),
       usageLimit: row.usageLimit !== null ? Number(row.usageLimit) : null,
       perUserLimit: row.perUserLimit !== null ? Number(row.perUserLimit) : null,
       totalUsed: Number(row.totalUsed || 0),
       orderUsageCount: Number(row.orderUsageCount || 0),
       totalDiscountGiven: Number(row.totalDiscountGiven || 0),
+      codOrdersCount: Number(row.codOrdersCount || 0),
     })),
   };
 }

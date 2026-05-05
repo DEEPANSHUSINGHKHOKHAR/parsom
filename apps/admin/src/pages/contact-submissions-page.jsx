@@ -14,7 +14,7 @@ function getWhatsAppHref(item, form = {}) {
 
   const adminMessage = (form.adminNotes ?? item.adminNotes ?? '').trim();
   const messageParts = [
-    `Hi ${item.fullName || 'there'}, thanks for contacting Parsom.`,
+    `Hi ${item.fullName || 'there'}, thanks for contacting Parsom Attire.`,
     'We are reaching out about your contact request.',
   ];
 

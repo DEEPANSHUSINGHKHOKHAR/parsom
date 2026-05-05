@@ -55,7 +55,7 @@ export default function LoginPage() {
       <section className="hidden items-end overflow-hidden bg-[#171412] p-12 text-[#fffaf4] lg:flex">
         <div className="max-w-xl">
           <p className="text-xs font-semibold uppercase text-[#c97051]">
-            Parsom command center
+            Parsom Attire command center
           </p>
           <h1 className="mt-4 text-5xl font-semibold tracking-tight">
             Manage drops, orders, and customer signals in one focused space.
@@ -71,7 +71,7 @@ export default function LoginPage() {
         className="m-auto w-full max-w-md rounded-[8px] border border-[#171412]/10 bg-[#fffaf4] p-8 shadow-[0_24px_60px_rgba(23,20,18,0.08)]"
       >
         <p className="text-xs font-semibold uppercase text-[#8f3d2f]">
-          Parsom Brand
+          Parsom Attire
         </p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[#171412]">
           Admin Login

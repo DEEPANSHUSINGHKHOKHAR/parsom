@@ -43,7 +43,7 @@ export default function AdminShell() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#8f3d2f]">
-              Parsom Brand
+              Parsom Attire
             </p>
             <h1 className="mt-1 text-xl font-semibold text-[#171412]">Admin Shell</h1>
           </div>

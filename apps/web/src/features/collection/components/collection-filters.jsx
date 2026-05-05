@@ -13,7 +13,6 @@ const sortOptions = [
   { value: 'latest', label: 'Recommended' },
   { value: 'price_low_to_high', label: 'Price: Low to High' },
   { value: 'price_high_to_low', label: 'Price: High to Low' },
-  { value: 'average', label: 'Customer Rating' },
 ];
 
 export default function CollectionFilters({
