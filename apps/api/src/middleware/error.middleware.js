@@ -10,7 +10,17 @@ function notFoundHandler(req, res) {
 
 function errorHandler(err, req, res, next) {
   const isMulterError = err.name === 'MulterError';
-  const statusCode = err.statusCode || (isMulterError ? 422 : 500);
+  const isPayloadTooLarge = err.type === 'entity.too.large' || err.status === 413;
+  const isBodyParseError = err.type === 'entity.parse.failed';
+  const statusCode =
+    err.statusCode ||
+    (isPayloadTooLarge
+      ? 413
+      : isBodyParseError
+        ? 400
+        : isMulterError
+          ? 422
+          : 500);
 
   logger.error(
     {
@@ -30,9 +40,13 @@ function errorHandler(err, req, res, next) {
     message:
       env.NODE_ENV === 'production' && !isOperationalError
         ? 'Internal server error.'
-        : isMulterError && err.code === 'LIMIT_FILE_SIZE'
-          ? 'File is too large.'
-          : err.message || 'Internal server error.',
+        : isPayloadTooLarge
+          ? 'Request payload is too large.'
+          : isBodyParseError
+            ? 'Malformed request payload.'
+            : isMulterError && err.code === 'LIMIT_FILE_SIZE'
+              ? 'File is too large.'
+              : err.message || 'Internal server error.',
     details:
       env.NODE_ENV === 'production' && !isOperationalError
         ? null

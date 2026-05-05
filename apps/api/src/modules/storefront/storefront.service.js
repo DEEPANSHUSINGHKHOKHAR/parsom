@@ -26,15 +26,15 @@ async function getStorefrontSettings() {
 
   const rows = await query(
     `
-      SELECT setting_key AS settingKey, setting_value AS settingValue
+      SELECT setting_value AS settingValue
       FROM site_settings
-      WHERE setting_key IN (?)
+      WHERE setting_key = ?
+      LIMIT 1
     `,
-    [[VELOCITY_BANNER_KEY]]
+    [VELOCITY_BANNER_KEY]
   );
 
-  const settingMap = new Map(rows.map((row) => [row.settingKey, row.settingValue]));
-  const entries = parseBannerEntries(settingMap.get(VELOCITY_BANNER_KEY));
+  const entries = parseBannerEntries(rows[0]?.settingValue);
 
   return {
     velocityBanner: {

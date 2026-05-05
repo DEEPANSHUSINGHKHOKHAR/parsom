@@ -51,6 +51,10 @@ const env = {
 
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
   TRUST_PROXY_HOPS: Number(process.env.TRUST_PROXY_HOPS || 0),
+  REQUEST_BODY_LIMIT: process.env.REQUEST_BODY_LIMIT || '1mb',
+  URLENCODED_BODY_LIMIT: process.env.URLENCODED_BODY_LIMIT || '1mb',
+  REDIS_URL: process.env.REDIS_URL || '',
+  RATE_LIMITER_PREFIX: process.env.RATE_LIMITER_PREFIX || 'parsom',
 
   GOOGLE_SERVICE_ACCOUNT_EMAIL: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',
   GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY:

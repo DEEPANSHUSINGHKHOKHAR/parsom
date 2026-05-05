@@ -5,6 +5,7 @@ const controller = require('./admin-tools.controller');
 const { requireAuth } = require('../../middleware/auth.middleware');
 const { requirePermission } = require('../../middleware/admin-permission.middleware');
 const { uploadLimiter } = require('../../middleware/rate-limit.middleware');
+const { validateMediaUpload } = require('../../middleware/upload-validation.middleware');
 
 const router = express.Router();
 
@@ -39,6 +40,7 @@ router.post(
   requirePermission('tools.upload'),
   uploadLimiter,
   upload.single('file'),
+  validateMediaUpload,
   controller.uploadMedia
 );
 

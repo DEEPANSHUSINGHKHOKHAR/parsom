@@ -1,4 +1,5 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const helmet = require('helmet');
 const pinoHttp = require('pino-http');
@@ -11,6 +12,8 @@ const { notFoundHandler, errorHandler } = require('./middleware/error.middleware
 const {
   apiLimiter,
 } = require('./middleware/rate-limit.middleware');
+const sanitizeInput = require('./middleware/sanitize-input.middleware');
+const requireCsrfToken = require('./middleware/csrf.middleware');
 
 const authRoutes = require('./modules/auth/auth.routes');
 const productRoutes = require('./modules/products/products.routes');
@@ -55,6 +58,7 @@ app.use(
       return callback(new Error('Not allowed by CORS.'));
     },
     credentials: true,
+    exposedHeaders: ['x-request-id', 'x-csrf-token'],
   })
 );
 
@@ -68,6 +72,8 @@ app.use(
     },
   })
 );
+
+app.use(cookieParser());
 
 app.use(
   pinoHttp({
@@ -113,10 +119,11 @@ app.get('/api', (req, res) => {
   });
 });
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: env.REQUEST_BODY_LIMIT, strict: true }));
+app.use(express.urlencoded({ extended: true, limit: env.URLENCODED_BODY_LIMIT }));
+app.use(sanitizeInput);
 app.use('/uploads', express.static(uploadsRoot));
-app.use('/api', apiLimiter);
+app.use(apiLimiter);
 
 app.use('/api/health', healthRoutes);
 
@@ -132,6 +139,7 @@ app.use('/api/contact-submissions', contactRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/uploads', uploadRoutes);
 
+app.use('/api/admin', requireCsrfToken);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/categories', adminCategoriesRoutes);
 app.use('/api/admin/coupons', adminCouponsRoutes);

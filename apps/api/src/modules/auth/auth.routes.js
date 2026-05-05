@@ -8,6 +8,8 @@ const { authLimiter } = require('../../middleware/rate-limit.middleware');
 
 const router = express.Router();
 
+router.use(authLimiter);
+
 const strongPasswordRule = (field) =>
   body(field)
     .isLength({ min: 8, max: 100 })
@@ -34,7 +36,6 @@ router.post(
 
 router.post(
   '/login',
-  authLimiter,
   [
     body('email').trim().isEmail().normalizeEmail(),
     body('password').isLength({ min: 8, max: 100 })
@@ -45,7 +46,6 @@ router.post(
 
 router.post(
   '/phone/check',
-  authLimiter,
   [body('phone').trim().notEmpty().isLength({ max: 30 })],
   validateRequest,
   authController.checkPhone
@@ -53,7 +53,6 @@ router.post(
 
 router.post(
   '/phone/login',
-  authLimiter,
   [
     body('phone').trim().notEmpty().isLength({ max: 30 }),
     body('password').isLength({ min: 8, max: 100 })
@@ -64,7 +63,6 @@ router.post(
 
 router.post(
   '/google',
-  authLimiter,
   [body('credential').trim().notEmpty().isJWT()],
   validateRequest,
   authController.googleLogin
@@ -72,7 +70,6 @@ router.post(
 
 router.post(
   '/admin/login',
-  authLimiter,
   [
     body('email').trim().isEmail().normalizeEmail(),
     body('password').isLength({ min: 8, max: 100 })
@@ -87,7 +84,6 @@ router.get('/me', requireAuth, authController.me);
 
 router.post(
   '/password/change',
-  authLimiter,
   requireAuth,
   [
     body('currentPassword')
@@ -102,7 +98,6 @@ router.post(
 
 router.delete(
   '/me',
-  authLimiter,
   requireAuth,
   [
     body('currentPassword')

@@ -3,6 +3,7 @@ const multer = require('multer');
 const { requireAuth } = require('../../middleware/auth.middleware');
 const { uploadLimiter } = require('../../middleware/rate-limit.middleware');
 const AppError = require('../../utils/app-error');
+const { validateImageUpload } = require('../../middleware/upload-validation.middleware');
 const controller = require('./uploads.controller');
 
 const router = express.Router();
@@ -27,6 +28,7 @@ router.post(
   requireAuth,
   uploadLimiter,
   upload.single('file'),
+  validateImageUpload,
   controller.uploadReviewImage
 );
 

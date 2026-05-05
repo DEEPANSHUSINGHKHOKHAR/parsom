@@ -1,6 +1,19 @@
+const crypto = require('crypto');
 const authService = require('./auth.service');
 
 function adminCookieOptions() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+}
+
+function adminCsrfCookieOptions() {
   const isProduction = process.env.NODE_ENV === 'production';
 
   return {
@@ -16,9 +29,20 @@ function setAdminAuthCookie(res, token) {
   res.cookie('parsom_admin_token', token, adminCookieOptions());
 }
 
+function setAdminCsrfCookie(res, token) {
+  res.cookie('parsom_admin_csrf', token, adminCsrfCookieOptions());
+}
+
 function clearAdminAuthCookie(res) {
   res.clearCookie('parsom_admin_token', {
     ...adminCookieOptions(),
+    maxAge: undefined,
+  });
+}
+
+function clearAdminCsrfCookie(res) {
+  res.clearCookie('parsom_admin_csrf', {
+    ...adminCsrfCookieOptions(),
     maxAge: undefined,
   });
 }
@@ -95,14 +119,17 @@ async function phoneLogin(req, res, next) {
 
 async function adminLogin(req, res, next) {
   try {
+    const csrfToken = crypto.randomBytes(32).toString('hex');
     const result = await authService.loginAdmin(req.body);
     setAdminAuthCookie(res, result.token);
+    setAdminCsrfCookie(res, csrfToken);
 
     res.status(200).json({
       success: true,
       message: 'Admin login successful.',
       data: {
         admin: result.admin,
+        csrfToken,
       }
     });
   } catch (error) {
@@ -113,6 +140,7 @@ async function adminLogin(req, res, next) {
 async function adminLogout(req, res, next) {
   try {
     clearAdminAuthCookie(res);
+    clearAdminCsrfCookie(res);
 
     res.status(200).json({
       success: true,
