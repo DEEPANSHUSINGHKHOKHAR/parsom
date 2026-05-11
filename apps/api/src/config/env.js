@@ -44,6 +44,9 @@ const env = {
   DB_USER: process.env.DB_USER || 'root',
   DB_PASSWORD: requireProductionEnv('DB_PASSWORD') || '',
   DB_NAME: process.env.DB_NAME || 'parsom_brand',
+  DB_SSL_CA: (process.env.DB_SSL_CA || '').replace(/\\n/g, '\n'),
+  DB_SSL_REJECT_UNAUTHORIZED:
+    process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
 
   JWT_SECRET: process.env.JWT_SECRET || 'USE_YOUR_LONG_RANDOM_SECRET_HERE',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
@@ -67,6 +70,11 @@ const env = {
 
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',
+
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
+  CLOUDINARY_FOLDER: process.env.CLOUDINARY_FOLDER || 'parsom',
 };
 
 validateProductionSecret(

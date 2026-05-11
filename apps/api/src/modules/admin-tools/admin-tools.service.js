@@ -1,12 +1,10 @@
-const fs = require('fs/promises');
-const path = require('path');
 const crypto = require('crypto');
 const sharp = require('sharp');
 
 const { query } = require('../../config/db');
 const env = require('../../config/env');
-const { uploadsRoot } = require('../../config/paths');
 const AppError = require('../../utils/app-error');
+const { uploadBuffer } = require('../../utils/cloudinary-client');
 const { validateUploadedMedia } = require('../../utils/media-validation');
 
 function csvEscape(value) {
@@ -92,41 +90,35 @@ async function exportNotifyRequestsCsv() {
   ]);
 }
 
-async function ensureDir(dirPath) {
-  await fs.mkdir(dirPath, { recursive: true });
-}
-
 async function uploadMedia(file) {
   const media = validateUploadedMedia(file);
-
-  const imagesDir = path.join(uploadsRoot, 'images');
-  const videosDir = path.join(uploadsRoot, 'videos');
-
-  await ensureDir(imagesDir);
-  await ensureDir(videosDir);
 
   const baseName = `${Date.now()}-${crypto.randomUUID()}`;
 
   if (media.type === 'image') {
     const image = sharp(file.buffer, { animated: true }).rotate();
     const metadata = await image.metadata();
-    const fileName = `${baseName}.webp`;
-    const outputPath = path.join(imagesDir, fileName);
 
-    await image
+    const outputBuffer = await image
       .resize(1800, 1800, {
         fit: 'inside',
         withoutEnlargement: true,
       })
       .webp({ quality: 82 })
-      .toFile(outputPath);
-
-    const relativePath = `/uploads/images/${fileName}`;
+      .toBuffer();
+    const cloudinaryResult = await uploadBuffer(outputBuffer, {
+      folder: `${env.CLOUDINARY_FOLDER}/images`,
+      public_id: baseName,
+      resource_type: 'image',
+      format: 'webp',
+      overwrite: false,
+    });
 
     return {
       type: 'image',
-      url: `${env.APP_URL}${relativePath}`,
-      relativePath,
+      url: cloudinaryResult.secure_url,
+      relativePath: cloudinaryResult.public_id,
+      publicId: cloudinaryResult.public_id,
       originalName: file.originalname,
       mimeType: file.mimetype,
       originalFormat: metadata.format || null,
@@ -139,21 +131,22 @@ async function uploadMedia(file) {
   }
 
   if (media.type === 'video') {
-    const extension = media.extension || '.mp4';
-    const fileName = `${baseName}${extension}`;
-    const outputPath = path.join(videosDir, fileName);
-
-    await fs.writeFile(outputPath, file.buffer);
-
-    const relativePath = `/uploads/videos/${fileName}`;
+    const cloudinaryResult = await uploadBuffer(file.buffer, {
+      folder: `${env.CLOUDINARY_FOLDER}/videos`,
+      public_id: baseName,
+      resource_type: 'video',
+      overwrite: false,
+    });
 
     return {
       type: 'video',
-      url: `${env.APP_URL}${relativePath}`,
-      relativePath,
+      url: cloudinaryResult.secure_url,
+      relativePath: cloudinaryResult.public_id,
+      publicId: cloudinaryResult.public_id,
       originalName: file.originalname,
       mimeType: file.mimetype,
-      originalFormat: extension.replace('.', '').toLowerCase(),
+      originalFormat:
+        cloudinaryResult.format || media.extension.replace('.', '').toLowerCase(),
       sizeBytes: file.size,
     };
   }
