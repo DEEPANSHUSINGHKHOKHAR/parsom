@@ -6,8 +6,8 @@ SET @sql := IF(
    WHERE TABLE_SCHEMA = DATABASE()
      AND TABLE_NAME = 'categories'
      AND COLUMN_NAME = 'audience') = 0,
-  "ALTER TABLE categories ADD COLUMN audience VARCHAR(20) NOT NULL DEFAULT 'women' AFTER slug",
-  "SELECT 1"
+  'ALTER TABLE categories ADD COLUMN audience VARCHAR(20) NOT NULL DEFAULT ''women'' AFTER slug',
+  'SELECT 1'
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
@@ -32,8 +32,8 @@ SET @sql := IF(
    WHERE TABLE_SCHEMA = DATABASE()
      AND TABLE_NAME = 'categories'
      AND COLUMN_NAME = 'badge') = 0,
-  "ALTER TABLE categories ADD COLUMN badge VARCHAR(20) NOT NULL DEFAULT '' AFTER parent_id",
-  "SELECT 1"
+  'ALTER TABLE categories ADD COLUMN badge VARCHAR(20) NOT NULL DEFAULT '''' AFTER parent_id',
+  'SELECT 1'
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
