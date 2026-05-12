@@ -78,6 +78,11 @@ async function addIndexIfMissing(tableName, indexName, definition) {
 async function ensureProductsPricingSchema() {
   await addColumnIfMissing(
     'products',
+    'discount_percent',
+    'DECIMAL(5,2) NOT NULL DEFAULT 0 AFTER discount_price'
+  );
+  await addColumnIfMissing(
+    'products',
     'making_price',
     'DECIMAL(12,2) DEFAULT NULL AFTER cost_price'
   );
@@ -125,6 +130,16 @@ async function ensureProductsPricingSchema() {
     'products',
     'mrp_value',
     'DECIMAL(12,2) DEFAULT NULL AFTER mrp_mode'
+  );
+  await addColumnIfMissing(
+    'products',
+    'sku_prefix',
+    'VARCHAR(80) DEFAULT NULL AFTER mrp_value'
+  );
+  await addColumnIfMissing(
+    'products',
+    'published_at',
+    'DATETIME DEFAULT NULL AFTER is_active'
   );
 }
 
