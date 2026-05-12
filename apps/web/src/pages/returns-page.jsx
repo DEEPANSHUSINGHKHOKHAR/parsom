@@ -55,7 +55,7 @@ const sections = [
   {
     title: 'Support And Disputes',
     points: [
-      'Customers should contact support@parsomattire.com or the official WhatsApp support channel before raising any payment dispute or chargeback.',
+      'Customers should contact support@parsomattire.studio or the official WhatsApp support channel before raising any payment dispute or chargeback.',
       'Our team will review return and payment issues using order records, Razorpay transaction references, customer communication history, photos, and unboxing video proof.',
       'Clear return, refund, and support communication helps reduce failed deliveries, false claims, payment disputes, and unnecessary gateway review risk.',
     ],

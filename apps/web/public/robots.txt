@@ -8,4 +8,4 @@ Disallow: /login
 Disallow: /register
 Disallow: /thank-you
 
-Sitemap: https://parsomattire.com/sitemap.xml
+Sitemap: https://parsomattire.studio/sitemap.xml

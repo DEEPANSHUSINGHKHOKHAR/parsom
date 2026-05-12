@@ -59,8 +59,8 @@ const sections = [
   {
     title: 'Contact',
     points: [
-      'Email: support@parsomattire.com',
-      'Website: parsomattire.com',
+      'Email: support@parsomattire.studio',
+      'Website: parsomattire.studio',
       'Support: Official WhatsApp support channel listed on the website',
     ],
   },

@@ -1,14 +1,14 @@
 export const siteConfig = {
   brandName: 'PARSOM ATTIRE',
   tagline: 'Luxury fashion editorial and minimal wardrobe essentials.',
-  siteUrl: 'https://parsomattire.com',
+  siteUrl: 'https://parsomattire.studio',
   defaultSeoTitle: 'PARSOM ATTIRE | Luxury Wardrobe and Minimal Fashion',
   defaultSeoDescription:
     'Shop PARSOM ATTIRE for limited-run luxury wardrobe pieces, refined silhouettes, premium fabrics, and minimal fashion designed in India.',
   defaultSeoImage: '/images/home-hero-parsom.png',
   defaultSeoKeywords:
     'PARSOM ATTIRE, luxury fashion India, minimal fashion, women clothing online, premium wardrobe, designer clothing India',
-  contactEmail: 'support@parsomattire.com',
+  contactEmail: 'support@parsomattire.studio',
   businessLocation: 'India',
   logoText: 'parsom attire',
   heroLabel: 'Autumn Winter 2026',

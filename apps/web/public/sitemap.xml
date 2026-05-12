@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://parsomattire.com/</loc>
+    <loc>https://parsomattire.studio/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://parsomattire.com/collection</loc>
+    <loc>https://parsomattire.studio/collection</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://parsomattire.com/stitch-your-cloth</loc>
+    <loc>https://parsomattire.studio/stitch-your-cloth</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://parsomattire.com/about</loc>
+    <loc>https://parsomattire.studio/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://parsomattire.com/contact</loc>
+    <loc>https://parsomattire.studio/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://parsomattire.com/size-chart</loc>
+    <loc>https://parsomattire.studio/size-chart</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://parsomattire.com/returns</loc>
+    <loc>https://parsomattire.studio/returns</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://parsomattire.com/privacy</loc>
+    <loc>https://parsomattire.studio/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://parsomattire.com/terms</loc>
+    <loc>https://parsomattire.studio/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

@@ -77,7 +77,7 @@ export default function ContactPage() {
                   <div>
                     <h4 className="mb-1 text-label text-foreground-primary">Email</h4>
                     <p className="text-body-sm text-foreground-muted underline">
-                      support@parsomattire.com
+                      support@parsomattire.studio
                     </p>
                   </div>
                 </div>
