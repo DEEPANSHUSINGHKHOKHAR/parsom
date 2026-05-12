@@ -736,6 +736,7 @@ async function createAdminProduct(payload) {
           slug,
           short_description,
           description,
+          price,
           original_price,
           discount_price,
           discount_percent,
@@ -759,7 +760,7 @@ async function createAdminProduct(payload) {
           seo_title,
           seo_description
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
       `,
       [
         payload.categoryId,
@@ -767,6 +768,7 @@ async function createAdminProduct(payload) {
         productSlug,
         payload.shortDescription || null,
         payload.description || null,
+        pricing.originalPrice,
         pricing.originalPrice,
         pricing.discountPrice ?? null,
         discountPercent,
@@ -881,6 +883,7 @@ async function updateAdminProduct(productId, payload) {
             slug = ?,
             short_description = ?,
             description = ?,
+            price = ?,
             original_price = ?,
             discount_price = ?,
             discount_percent = ?,
@@ -911,6 +914,7 @@ async function updateAdminProduct(productId, payload) {
         payload.slug ?? existing.slug,
         payload.shortDescription ?? existing.short_description,
         payload.description ?? existing.description,
+        pricing.originalPrice,
         pricing.originalPrice,
         pricing.discountPrice,
         discountPercent,
